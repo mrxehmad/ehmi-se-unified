@@ -1,0 +1,10 @@
+[submodule "portfolio"]
+	path = portfolio
+	url = https://github.com/mrxehmad/portfolio-site.git
+[submodule "tools"]
+	path = tools
+	url = https://github.com/mrxehmad/online-toolkit.git
+[submodule "blog"]
+	path = blog
+	url = https://github.com/mrxehmad/blog.git
+	branch = blog
