@@ -171,27 +171,7 @@ EOF
           
           # Create .nojekyll for GitHub Pages compatibility
           touch .nojekyll
-          
-          # Create deployment info file
-          cat > DEPLOYMENT_INFO.txt << EOF
-Deployment Information
-=====================
-Build Date: $(date '+%Y-%m-%d %H:%M:%S UTC')
-Trigger: Manual deployment
-Commit: ${GITHUB_SHA:0:7}
-Workflow Run: #${GITHUB_RUN_NUMBER}
-
-Components:
-- Portfolio: Built from portfolio/ submodule
-- Tools: Built from tools/ submodule  
-- Blog: Copied from blog/ submodule (blog branch)
-
-Structure:
-- / = Portfolio (Next.js)
-- /tools/ = React Tools (SPA)
-- /blog/ = Publii Blog + All Articles
-EOF
-          
+                    
           # Add all files
           git add -A
           
