@@ -1,8 +1,6 @@
 name: Build and Deploy - ehmi-se-unified
-
 on:
   workflow_dispatch:
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -63,35 +61,25 @@ jobs:
       
       - name: Deploy to Production Branch
         run: |
+          # Navigate into dist folder
+          cd dist
+          
+          # Initialize a fresh git repository
+          git init
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          
-          git fetch origin production 2>/dev/null || true
-          git checkout -B production
-          
-          # Clean workspace (including .gitmodules to remove submodule artifacts)
-          find . -maxdepth 1 ! -name 'dist' ! -name '.git' ! -name '.' ! -name '..' -exec rm -rf {} +
-          
-          # Also remove .gitmodules if it exists (hidden file)
-          rm -f .gitmodules
-          
-          # Move dist contents to root
-          mv dist/* .
-          mv dist/.[!.]* . 2>/dev/null || true
-          rmdir dist
           
           # Create .nojekyll for GitHub Pages
           touch .nojekyll
           
-          # Commit and push
+          # Add all files
           git add -A
-          git commit -m "Deploy $(date '+%Y-%m-%d %H:%M:%S')" || true
-          git push origin production --force
           
+          # Commit
+          git commit -m "Deploy $(date '+%Y-%m-%d %H:%M:%S')"
+          
+          # Force push to production branch
+          git push --force https://x-access-token:${{ secrets.ID_GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:production
+          
+          cd ..
           echo "✅ Deployed to production branch"
-      
-      # Cleanup: Switch back to main to avoid submodule cleanup errors
-      - name: Cleanup
-        if: always()
-        run: |
-          git checkout main 2>/dev/null || true
