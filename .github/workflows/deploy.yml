@@ -1,34 +1,27 @@
-# .github/workflows/deploy.yml
-name: Build and Deploy Unified Site
+name: Build and Deploy - ehmi-se-unified
 
 on:
-  workflow_dispatch:  # Manual trigger only
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     
     steps:
-      # 1. Checkout with submodules
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.ID_GITHUB_TOKEN }}
           fetch-depth: 0
       
-      # 2. Checkout blog submodule to 'blog' branch
       - name: Checkout Blog Branch
         run: |
           cd blog
           git fetch origin blog
           git checkout blog
-          echo "✅ Blog submodule checked out to 'blog' branch"
-          echo "📂 Blog contents:"
-          ls -la | head -20
           cd ..
       
-      # 3. Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -38,189 +31,57 @@ jobs:
             portfolio/package-lock.json
             tools/package-lock.json
       
-      # 4. Build Portfolio (Next.js)
       - name: Build Portfolio
         run: |
           cd portfolio
-          echo "📦 Installing portfolio dependencies..."
           npm ci
-          echo "🔨 Building portfolio..."
           npm run build
-          echo "✅ Portfolio build complete"
-          ls -la out/
           cd ..
       
-      # 5. Build Tools (React with basename="/tools")
       - name: Build Tools
         run: |
           cd tools
-          echo "📦 Installing tools dependencies..."
           npm ci
-          echo "🔨 Building tools with PUBLIC_URL=/tools..."
-          PUBLIC_URL=/tools npm run build
-          echo "✅ Tools build complete"
-          ls -la build/
+          npm run build
           cd ..
       
-      # 6. Merge everything into dist/
-      - name: Merge Builds
+      - name: Create Dist Structure
         run: |
-          echo "🗂️ Creating dist directory..."
           mkdir -p dist
           
-          echo ""
-          echo "📋 Step 1: Copy Portfolio (base layer)"
+          # Copy portfolio to root
           cp -r portfolio/out/* dist/
-          echo "  ✓ Portfolio copied to dist/"
           
-          echo ""
-          echo "🔧 Step 2: Add Tools under /tools"
+          # Copy tools under /tools
           mkdir -p dist/tools
           cp -r tools/build/* dist/tools/
-          echo "  ✓ Tools copied to dist/tools/"
           
-          echo ""
-          echo "📝 Step 3: Add Blog - Everything under /blog"
+          # Copy blog under /blog
           mkdir -p dist/blog
-          
-          # Copy ALL blog files to /blog directory
-          echo "  📄 Copying all blog files to /blog/..."
           cp -r blog/* dist/blog/
-          
-          # Remove .git directory if present
-          rm -rf dist/blog/.git 2>/dev/null || true
-          rm -rf dist/blog/.github 2>/dev/null || true
-          
-          echo "  ✓ Blog copied to dist/blog/"
-          echo "  ✓ Blog structure:"
-          ls -la dist/blog/ | head -15
-          
-          echo ""
-          echo "🔗 Step 4: Create unified configuration files"
-          
-          # Create unified robots.txt
-          cat > dist/robots.txt << 'EOF'
-User-agent: *
-Allow: /
-
-# Section sitemaps
-Sitemap: https://ehmi.se/sitemap.xml
-Sitemap: https://ehmi.se/tools/sitemap.xml
-Sitemap: https://ehmi.se/blog/sitemap.xml
-EOF
-          echo "  ✓ Created unified robots.txt"
-          
-          # Create _redirects for SPA routing and subdomain redirects
-          cat > dist/_redirects << 'EOF'
-# Redirect old blog subdomain to new location
-https://blog.ehmi.se/*  https://ehmi.se/blog/:splat  301!
-
-# Redirect old tools subdomain  
-https://tools.ehmi.se/*  https://ehmi.se/tools/:splat  301!
-
-# SPA fallback for tools (must be last)
-/tools/*  /tools/index.html  200
-EOF
-          echo "  ✓ Created _redirects for hosting"
-          
-          echo ""
-          echo "✅ Build merge complete!"
-          echo ""
-          echo "📊 Final structure:"
-          echo "dist/"
-          echo "├── index.html (portfolio)"
-          echo "├── about.html"
-          echo "├── contact.html"
-          echo "├── ..."
-          echo "├── tools/"
-          echo "│   ├── index.html"
-          echo "│   ├── static/"
-          echo "│   └── ..."
-          echo "└── blog/"
-          echo "    ├── index.html"
-          echo "    ├── some-article/"
-          echo "    ├── another-article/"
-          echo "    └── ..."
-          
-          echo ""
-          echo "📈 Directory sizes:"
-          du -sh dist/* 2>/dev/null | sort -hr | head -10
+          rm -rf dist/blog/.git dist/blog/.github
       
-      # 7. Push source code to production branch
       - name: Deploy to Production Branch
         run: |
-          echo "🚀 Preparing deployment to production branch..."
-          
-          # Configure git
-          git config user.name "GitHub Actions Bot"
+          git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           
-          # Checkout/create production branch
           git fetch origin production 2>/dev/null || true
           git checkout -B production
           
-          # Remove everything except dist/ and .git
-          echo "🧹 Cleaning workspace..."
-          find . -maxdepth 1 ! -name 'dist' ! -name '.git' ! -name '.' ! -name '..' -exec rm -rf {} + 2>/dev/null || true
+          # Clean workspace
+          find . -maxdepth 1 ! -name 'dist' ! -name '.git' ! -name '.' ! -name '..' -exec rm -rf {} +
           
           # Move dist contents to root
-          echo "📦 Moving built files to root..."
-          mv dist/* . 2>/dev/null || true
-          mv dist/.* . 2>/dev/null || true
-          rmdir dist 2>/dev/null || true
+          mv dist/* .
+          rmdir dist
           
-          # Create .nojekyll for GitHub Pages compatibility
+          # Create .nojekyll for GitHub Pages
           touch .nojekyll
-                    
-          # Add all files
+          
+          # Commit and push
           git add -A
-          
-          # Commit with detailed message
-          COMMIT_MSG="🚀 Deploy: $(date '+%Y-%m-%d %H:%M:%S')
-
-Deployed from commit: ${GITHUB_SHA:0:7}
-Workflow run: #${GITHUB_RUN_NUMBER}
-Trigger: Manual deployment
-          
-Components:
-✓ Portfolio (Next.js static export)
-✓ Tools (React SPA under /tools/)
-✓ Blog (Publii CMS under /blog/)"
-          
-          git diff --staged --quiet || git commit -m "$COMMIT_MSG"
-          
-          # Push to production
-          echo "📤 Pushing to production branch..."
+          git commit -m "Deploy $(date '+%Y-%m-%d %H:%M:%S')" || true
           git push origin production --force
           
-          echo "✅ Deployment complete!"
-          echo "🌐 Site pushed to production branch"
-      
-      # 8. Summary
-      - name: Deployment Summary
-        if: success()
-        run: |
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "✅ DEPLOYMENT SUCCESSFUL"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo ""
-          echo "📦 Built components:"
-          echo "  ✓ Portfolio (Next.js) → /"
-          echo "  ✓ Tools (React) → /tools/"
-          echo "  ✓ Blog (Publii) → /blog/"
-          echo ""
-          echo "🌐 Deployment target:"
-          echo "  Branch: production"
-          echo "  Repository: ${{ github.repository }}"
-          echo ""
-          echo "🔗 Next steps:"
-          echo "  1. Configure Cloudflare Pages:"
-          echo "     - Production branch: production"
-          echo "     - Build command: (none - already built)"
-          echo "     - Build output: / (root)"
-          echo "  2. Set custom domain: ehmi.se"
-          echo "  3. Test URLs:"
-          echo "     ✓ https://ehmi.se/"
-          echo "     ✓ https://ehmi.se/tools/"
-          echo "     ✓ https://ehmi.se/blog/"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "✅ Deployed to production branch"
