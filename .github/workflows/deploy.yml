@@ -89,3 +89,9 @@ jobs:
           git push origin production --force
           
           echo "✅ Deployed to production branch"
+      
+      # Cleanup: Switch back to main to avoid submodule cleanup errors
+      - name: Cleanup
+        if: always()
+        run: |
+          git checkout main 2>/dev/null || true
