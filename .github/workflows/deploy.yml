@@ -65,6 +65,10 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           
+          # Save dist to a temporary location OUTSIDE git tracking
+          echo "📦 Preparing deployment files..."
+          mv dist /tmp/dist-deploy
+          
           # Fetch production branch
           git fetch origin production 2>/dev/null || true
           
@@ -72,15 +76,17 @@ jobs:
           git checkout -B production
           
           # Remove ALL files including hidden ones and submodule artifacts
+          echo "🧹 Cleaning production branch..."
           git rm -rf . 2>/dev/null || true
           rm -rf * .[!.]* 2>/dev/null || true
           
-          # Copy dist contents to root (including hidden files)
-          cp -r dist/* .
-          cp -r dist/.[!.]* . 2>/dev/null || true
+          # Copy dist contents from temp location to root
+          echo "📋 Copying built files..."
+          cp -r /tmp/dist-deploy/* .
+          cp -r /tmp/dist-deploy/.[!.]* . 2>/dev/null || true
           
-          # Remove dist directory
-          rm -rf dist
+          # Cleanup temp
+          rm -rf /tmp/dist-deploy
           
           # Create .nojekyll for GitHub Pages
           touch .nojekyll
