@@ -1,4 +1,5 @@
 name: Build and Deploy - ehmi-se-unified
+
 on:
   workflow_dispatch:
 
@@ -65,36 +66,25 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           
-          # Save dist to a temporary location OUTSIDE git tracking
-          echo "📦 Preparing deployment files..."
-          mv dist /tmp/dist-deploy
-          
-          # Fetch production branch
           git fetch origin production 2>/dev/null || true
-          
-          # Switch to production branch
           git checkout -B production
           
-          # Remove ALL files including hidden ones and submodule artifacts
-          echo "🧹 Cleaning production branch..."
-          git rm -rf . 2>/dev/null || true
-          rm -rf * .[!.]* 2>/dev/null || true
+          # Clean workspace (including .gitmodules to remove submodule artifacts)
+          find . -maxdepth 1 ! -name 'dist' ! -name '.git' ! -name '.' ! -name '..' -exec rm -rf {} +
           
-          # Copy dist contents from temp location to root
-          echo "📋 Copying built files..."
-          cp -r /tmp/dist-deploy/* .
-          cp -r /tmp/dist-deploy/.[!.]* . 2>/dev/null || true
+          # Also remove .gitmodules if it exists (hidden file)
+          rm -f .gitmodules
           
-          # Cleanup temp
-          rm -rf /tmp/dist-deploy
+          # Move dist contents to root
+          mv dist/* .
+          mv dist/.[!.]* . 2>/dev/null || true
+          rmdir dist
           
           # Create .nojekyll for GitHub Pages
           touch .nojekyll
           
-          # Add all files
-          git add -A
-          
           # Commit and push
+          git add -A
           git commit -m "Deploy $(date '+%Y-%m-%d %H:%M:%S')" || true
           git push origin production --force
           
