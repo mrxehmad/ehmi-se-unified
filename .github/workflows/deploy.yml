@@ -37,6 +37,8 @@ jobs:
           cd ..
       
       - name: Build Tools
+        env:
+          CI: "false"
         run: |
           cd tools
           npm ci
