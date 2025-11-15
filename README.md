@@ -1,4 +1,4 @@
-# 🌐 ehmi.se - Unified Site
+# 🌐 ehmi.se - Unified Site [![Netlify Status](https://api.netlify.com/api/v1/badges/4d9aa597-c602-4672-b5d7-01aa186abf9f/deploy-status)](https://app.netlify.com/projects/jezzamain/deploys)
 
 This repository orchestrates the deployment of **ehmi.se** by combining three separate codebases into one unified site.
 
