@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ehmi.se/sitemap.xml
+Sitemap: https://ehmi.se/tools/sitemap.xml
+Sitemap: https://ehmi.se/blog/sitemap.xml
