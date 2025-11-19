@@ -1,0 +1,662 @@
+<!DOCTYPE html><html lang="en-gb"><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Windows package managers (CLI) - Ehmi</title><meta name="description" content="Windows package managers (CLI), Ehmi, Ehmad."><meta name="generator" content="Publii Open-Source CMS for Static Site"><meta name="theme-color" content="#17181E" media="(prefers-color-scheme: dark)"><meta name="theme-color" content="#3AB8D7" media="(prefers-color-scheme: light)"><meta name="msapplication-navbutton-color" content="#3AB8D7"><meta name="apple-mobile-web-app-status-bar-style" content="#3AB8D7"><link rel="canonical" href="https://ehmi.se/blog/windows-package-managers-cli/"><link rel="alternate" type="application/atom+xml" href="https://ehmi.se/blog/feed.xml" title="Ehmi - RSS"><link rel="alternate" type="application/json" href="https://ehmi.se/blog/feed.json" title="Ehmi - JSON"><meta property="og:title" content="Windows package managers (CLI)"><meta property="og:image" content="https://ehmi.se/blog/media/website/659fa592476e081fbd5a38d0_11.png"><meta property="og:image:width" content="1920"><meta property="og:image:height" content="1080"><meta property="og:site_name" content="Ehmi"><meta property="og:description" content="Windows package managers (CLI), Ehmi, Ehmad."><meta property="og:url" content="https://ehmi.se/blog/windows-package-managers-cli/"><meta property="og:type" content="article"><meta name="twitter:card" content="summary"><meta name="twitter:site" content="@Ehmi0k"><meta name="twitter:title" content="Windows package managers (CLI)"><meta name="twitter:description" content="Windows package managers (CLI), Ehmi, Ehmad."><meta name="twitter:image" content="https://ehmi.se/blog/media/website/659fa592476e081fbd5a38d0_11.png"><link rel="shortcut icon" href="https://ehmi.se/blog/media/website/favicon.png" type="image/png"><link rel="stylesheet" href="https://ehmi.se/blog/assets/css/style.css?v=d385bc0ff3a04c1b92f998df1d9dfc3f"><script type="application/ld+json">{"@context":"http://schema.org","@type":"Article","mainEntityOfPage":{"@type":"WebPage","@id":"https://ehmi.se/blog/windows-package-managers-cli/"},"headline":"Windows package managers (CLI)","datePublished":"2024-12-26T08:24+05:00","dateModified":"2024-12-26T08:24+05:00","image":{"@type":"ImageObject","url":"https://ehmi.se/blog/media/website/ehmi.png","height":100,"width":150},"description":"Windows package managers (CLI), Ehmi, Ehmad.","author":{"@type":"Person","name":"Ehmad","url":"https://ehmi.se/blog/authors/ehmad/"},"publisher":{"@type":"Organization","name":"Ehmad","logo":{"@type":"ImageObject","url":"https://ehmi.se/blog/media/website/ehmi.png","height":100,"width":150}}}</script><noscript><style>img[loading] {
+                    opacity: 1;
+                }</style></noscript></head><body class="post-template"><header class="top js-header"><a class="logo" href="https://ehmi.se/blog/"><img src="https://ehmi.se/blog/media/website/ehmi.png" alt="Ehmi" width="150" height="100"></a><nav class="navbar js-navbar"><button class="navbar__toggle js-toggle" aria-label="Menu" aria-haspopup="true" aria-expanded="false"><span class="navbar__toggle-box"><span class="navbar__toggle-inner">Menu</span></span></button><ul class="navbar__menu"><li><a href="https://ehmi.se/blog/about-ehmi/" target="_self">About me</a></li><li><a href="https://ehmi.se/blog/contact-us/" target="_self">Contact</a></li></ul></nav><div class="search"><div class="search__overlay js-search-overlay"><div class="wrapper search__overlay-inner"></div></div><button class="search__btn btn--icon js-search-btn" aria-label="Search"><svg height="18" width="18" role="presentation" focusable="false"><use xlink:href="https://ehmi.se/blog/assets/svg/svg-map.svg#search"/></svg></button></div></header><main class="post"><article class="content"><div class="hero hero--noimage"><header class="hero__content"><div class="wrapper"><h1>Windows package managers (CLI)</h1><div class="feed__meta content__meta"><a href="https://ehmi.se/blog/authors/ehmad/" class="feed__author">Ehmad</a> <time datetime="2024-12-26T08:24" class="feed__date">December 26, 2024 </time><span class="reading-time" aria-label="4 min read">4 min read</span></div></div></header></div><div class="entry-wrapper content__entry"><p>Windows offers several package managers that can simplify the process of installing and managing software. Here are some of the most popular ones:</p><h3 id="1-winget-windows-package-manager">1. <strong>winget (Windows Package Manager)</strong></h3><ul><li><strong>Description</strong>: <code>winget</code> is a native Windows package manager developed by Microsoft. It allows you to search, install, update, and manage software from the command line.</li><li><strong>How to use</strong>:<ul><li><strong>Install</strong>: <code>winget</code> comes pre-installed on Windows 10 (starting with version 1809) and Windows 11.</li><li><strong>Install a package</strong>:<pre><code class="language-bash">winget install &lt;package-name&gt;
+</code></pre></li><li><strong>Example</strong>:<pre><code class="language-bash">winget install firefox
+</code></pre></li><li><strong>List available packages</strong>:<pre><code class="language-bash">winget search &lt;package-name&gt;
+</code></pre></li></ul></li></ul><h3 id="2-chocolatey">2. <strong>Chocolatey</strong></h3><ul><li><strong>Description</strong>: Chocolatey is one of the most popular package managers for Windows. It works similarly to <code>apt</code> (on Linux) or <code>brew</code> (on macOS) and allows you to install software, update it, and manage dependencies easily.</li><li><strong>How to use</strong>:<ul><li><strong>Install</strong>:<ul><li>Open PowerShell as Administrator and run:<pre><code class="language-powershell">Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12; iex ((New-Object System.Net.WebClient).DownloadString(&#39;https://chocolatey.org/install.ps1&#39;))
+</code></pre></li></ul></li><li><strong>Install a package</strong>:<pre><code class="language-bash">choco install &lt;package-name&gt;
+</code></pre></li><li><strong>Example</strong>:<pre><code class="language-bash">choco install googlechrome
+</code></pre></li><li><strong>Update a package</strong>:<pre><code class="language-bash">choco upgrade &lt;package-name&gt;
+</code></pre></li></ul></li></ul><h3 id="3-scoop">3. <strong>Scoop</strong></h3><ul><li><strong>Description</strong>: Scoop is a simple and powerful command-line installer for Windows. It focuses on simplicity and is popular among developers for installing development tools.</li><li><strong>How to use</strong>:<ul><li><strong>Install</strong>: Open PowerShell and run:<pre><code class="language-powershell">Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+iwr -useb get.scoop.sh | iex
+</code></pre></li><li><strong>Install a package</strong>:<pre><code class="language-bash">scoop install &lt;package-name&gt;
+</code></pre></li><li><strong>Example</strong>:<pre><code class="language-bash">scoop install git
+</code></pre></li><li><strong>List available buckets</strong>:<pre><code class="language-bash">scoop bucket add &lt;bucket-name&gt;
+</code></pre></li></ul></li></ul><h3 id="4-ninite">4. <strong>Ninite</strong></h3><ul><li><strong>Description</strong>: Ninite is a simple and easy-to-use tool that allows you to batch install popular software. It’s not exactly a package manager, but it automates the process of downloading and installing apps.</li><li><strong>How to use</strong>:<ul><li><strong>Download</strong> the Ninite installer from the Ninite website.</li><li><strong>Select the apps</strong> you want to install from the list on the Ninite website and download the custom installer.</li><li><strong>Run the installer</strong> to automatically install all selected software.</li></ul></li></ul><h3 id="5-appget">5. <strong>AppGet</strong></h3><ul><li><strong>Description</strong>: AppGet is another package manager for Windows that provides a streamlined way to install software. It aims to be a more modern and stable package manager but is less widely used than the others.</li><li><strong>How to use</strong>:<ul><li><strong>Install</strong>: First, you need to install AppGet from its GitHub page or from the <a href="https://appget.net">AppGet website</a>.</li><li><strong>Install a package</strong>:<pre><code class="language-bash">appget install &lt;package-name&gt;
+</code></pre></li><li><strong>Example</strong>:<pre><code class="language-bash">appget install vscode
+</code></pre></li></ul></li></ul><h3 id="6-portableapps">6. <strong>PortableApps</strong></h3><ul><li><strong>Description</strong>: PortableApps isn’t a package manager in the traditional sense, but it provides a platform for running portable versions of popular software. It’s ideal if you prefer not to install software directly onto your system.</li><li><strong>How to use</strong>:<ul><li><strong>Download</strong> and install the <a href="https://portableapps.com/">PortableApps platform</a>.</li><li><strong>Install apps</strong> from the platform’s app store or manually by downloading portable versions.</li></ul></li></ul><h3 id="7-msi-package-via-powershell">7. <strong>MSI Package (via PowerShell)</strong></h3><ul><li><strong>Description</strong>: You can install MSI (Microsoft Installer) packages using PowerShell. This is more manual compared to the other package managers but gives you control over specific installations.</li><li><strong>How to use</strong>:<ul><li><strong>Install an MSI package</strong>:<pre><code class="language-powershell">msiexec /i &quot;C:\path\to\installer.msi&quot;
+</code></pre></li></ul></li></ul><h3 id="8-fdm-free-download-manager">8. <strong>FDM (Free Download Manager)</strong></h3><ul><li><strong>Description</strong>: Free Download Manager isn’t exactly a package manager, but it supports downloading installers and automating installation tasks.</li><li><strong>How to use</strong>:<ul><li>Use it to download software or package files, and it will assist in managing the downloads.</li></ul></li></ul><hr><h3 id="comparison-overview">Comparison Overview:</h3><table><thead><tr><th>Package Manager</th><th>Ease of Use</th><th>Package Availability</th><th>Best For</th><th>Official Site</th></tr></thead><tbody><tr><td><strong>winget</strong></td><td>Easy</td><td>Good</td><td>General use, Windows apps</td><td><a href="https://github.com/microsoft/winget-cli">https://github.com/microsoft/winget-cli</a></td></tr><tr><td><strong>Chocolatey</strong></td><td>Easy</td><td>Excellent</td><td>General use, productivity software</td><td><a href="https://chocolatey.org">https://chocolatey.org</a></td></tr><tr><td><strong>Scoop</strong></td><td>Easy</td><td>Good</td><td>Developer tools</td><td><a href="https://scoop.sh">https://scoop.sh</a></td></tr><tr><td><strong>Ninite</strong></td><td>Very Easy</td><td>Limited</td><td>Quick batch installation</td><td><a href="https://ninite.com">https://ninite.com</a></td></tr><tr><td><strong>AppGet</strong></td><td>Easy</td><td>Moderate</td><td>Software management</td><td><a href="https://appget.net">https://appget.net</a></td></tr><tr><td><strong>PortableApps</strong></td><td>Very Easy</td><td>Limited</td><td>Portable apps</td><td><a href="https://portableapps.com">https://portableapps.com</a></td></tr><tr><td><strong>MSI via PowerShell</strong></td><td>Manual</td><td>Depends on the MSI file</td><td>Specific app installs</td><td>N/A</td></tr></tbody></table><p>Each of these package managers has its strengths and use cases. <strong>winget</strong>, <strong>Chocolatey</strong>, and <strong>Scoop</strong> are widely used for general-purpose package management, while <strong>Ninite</strong> is useful for batch installation, and <strong>PortableApps</strong> is great for portable software.</p></div><footer class="content__footer"><div class="entry-wrapper"><p class="content__updated">This article was updated on December 26, 2024</p><div class="content__actions"><div class="content__share"><button class="btn--icon content__share-button js-content__share-button"><svg width="20" height="20" aria-hidden="true"><use xlink:href="https://ehmi.se/blog/assets/svg/svg-map.svg#share"></use></svg> <span>Share It</span></button><div class="content__share-popup js-content__share-popup"><a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fehmi.se%2Fblog%2Fwindows-package-managers-cli%2F" class="js-share facebook" rel="nofollow noopener noreferrer"><svg class="icon" aria-hidden="true" focusable="false"><use xlink:href="https://ehmi.se/blog/assets/svg/svg-map.svg#facebook"/></svg> <span>Facebook</span> </a><a href="https://twitter.com/intent/tweet?url=https%3A%2F%2Fehmi.se%2Fblog%2Fwindows-package-managers-cli%2F&amp;via=Ehmi0k&amp;text=Windows%20package%20managers%20(CLI)" class="js-share twitter" rel="nofollow noopener noreferrer"><svg class="icon" aria-hidden="true" focusable="false"><use xlink:href="https://ehmi.se/blog/assets/svg/svg-map.svg#twitter"/></svg> <span>Twitter</span> </a><a href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fehmi.se%2Fblog%2Fwindows-package-managers-cli%2F" class="js-share linkedin" rel="nofollow noopener noreferrer"><svg class="icon" aria-hidden="true" focusable="false"><use xlink:href="https://ehmi.se/blog/assets/svg/svg-map.svg#linkedin"/></svg> <span>LinkedIn</span></a></div></div></div><div class="content__bio bio"><div><h3 class="h4 bio__name"><a href="https://ehmi.se/blog/authors/ehmad/" rel="author">Ehmad</a></h3></div></div></div><nav class="content__nav"><div class="wrapper"><div class="content__nav-inner"><div class="content__nav-prev"><a href="https://ehmi.se/blog/how-to-fix-webdav-connection-issues-in-windows-and-map-a-webdav-drive/" class="content__nav-link" rel="prev"><div><span>Previous</span> How to Fix WebDAV Connection Issues in Windows and Map a WebDAV Drive</div></a></div><div class="content__nav-next"><a href="https://ehmi.se/blog/remove-apps-using-adb-android-debug-bridge/" class="content__nav-link" rel="next"><div><span>Next</span> Remove apps using ADB (Android Debug Bridge)</div></a></div></div></div></nav></footer></article><div class="content__related related"><div class="wrapper"><h2 class="h4 related__title">You should also read:</h2><article class="feed__item feed__item--centered"><div class="feed__content"><header><div class="feed__meta"><a href="https://ehmi.se/blog/authors/ehmad/" class="feed__author">Ehmad</a> <time datetime="2025-04-29T08:29" class="feed__date">April 29, 2025</time></div><h3 class="feed__title"><a href="https://ehmi.se/blog/how-to-enable-remote-shutdown-on-windows-1011-step-by-step/">How to Enable Remote Shutdown on Windows 10/11 (Step-by-Step!)</a></h3></header><p>Hey everyone! Today, I’m going to show you exactly how to enable remote shutdown on a Windows machine — and we’ll do it the right way, step-by-step. I’ll make it simple, and practical, so you can test this in your own home lab. Let’s dive&hellip;</p><a href="https://ehmi.se/blog/how-to-enable-remote-shutdown-on-windows-1011-step-by-step/" class="readmore feed__readmore">Continue reading...</a></div></article><article class="feed__item feed__item--centered"><div class="feed__content"><header><div class="feed__meta"><a href="https://ehmi.se/blog/authors/ehmad/" class="feed__author">Ehmad</a> <time datetime="2024-12-14T15:14" class="feed__date">December 14, 2024</time></div><h3 class="feed__title"><a href="https://ehmi.se/blog/how-to-fix-webdav-connection-issues-in-windows-and-map-a-webdav-drive/">How to Fix WebDAV Connection Issues in Windows and Map a WebDAV Drive</a></h3></header><p>WebDAV (Web-based Distributed Authoring and Versioning) is a protocol that allows users to manage and share files over the web. While connecting to a WebDAV endpoint is straightforward on many platforms, Windows users may encounter challenges, such as errors while mapping WebDAV drives or accessing&hellip;</p><a href="https://ehmi.se/blog/how-to-fix-webdav-connection-issues-in-windows-and-map-a-webdav-drive/" class="readmore feed__readmore">Continue reading...</a></div></article><article class="feed__item feed__item--centered"><div class="feed__content"><header><div class="feed__meta"><a href="https://ehmi.se/blog/authors/ehmad/" class="feed__author">Ehmad</a> <time datetime="2024-11-16T20:01" class="feed__date">November 16, 2024</time></div><h3 class="feed__title"><a href="https://ehmi.se/blog/monitor-the-network-traffic-of-a-specific-app-on-windows/">Monitor the network traffic of a specific APP on Windows </a></h3></header><p>To monitor the network traffic of a specific app on Windows using Wireshark, follow these steps: To filter traffic from a specific app, first identify the app’s PID (Process ID): Alternatively: netstat -ano | findstr :&lt;Port Number&gt; Replace &lt;Port Number&gt; with the specific port number&hellip;</p><a href="https://ehmi.se/blog/monitor-the-network-traffic-of-a-specific-app-on-windows/" class="readmore feed__readmore">Continue reading...</a></div></article></div></div></main><footer class="footer footer--glued"><div class="wrapper"><nav class="footer__nav"><ul><li><a href="https://ehmi.se/blog/terms-and-conditions-for-ehmi/" class="al" target="_self">Terms and Conditions</a></li><li><a href="https://ehmi.se/blog/privacy-policy-for-ehmi/" class="al" target="_self">Privacy Policy</a></li><li><a href="https://ehmi.se/blog/contact-us/" class="al" target="_self">Contact</a></li><li><a href="https://github.com/mrxehmad/" class="al" target="_blank">Github</a></li></ul></nav><div class="footer__copyright"><p>Copyright 2025</p></div><div class="footer__social"><a href="https://ehmi.se/instagram" aria-label="Instagram"><svg><use xlink:href="https://ehmi.se/blog/assets/svg/svg-map.svg#instagram"/></svg> </a><a href="https://ehmi.se/linkedin" aria-label="LinkedIn"><svg><use xlink:href="https://ehmi.se/blog/assets/svg/svg-map.svg#linkedin"/></svg></a></div><button onclick="backToTopFunction()" id="backToTop" class="footer__bttop" aria-label="Back to top" title="Back to top"><svg width="20" height="20"><use xlink:href="https://ehmi.se/blog/assets/svg/svg-map.svg#toparrow"/></svg></button></div></footer><script defer="defer" src="https://ehmi.se/blog/assets/js/scripts.min.js?v=700105c316933a8202041b6415abb233"></script><script>window.publiiThemeMenuConfig={mobileMenuMode:'sidebar',animationSpeed:300,submenuWidth: 'auto',doubleClickTime:500,mobileMenuExpandableSubmenus:true,relatedContainerForOverlayMenuSelector:'.top'};</script><script>var images = document.querySelectorAll('img[loading]');
+        for (var i = 0; i < images.length; i++) {
+            if (images[i].complete) {
+                images[i].classList.add('is-loaded');
+            } else {
+                images[i].addEventListener('load', function () {
+                    this.classList.add('is-loaded');
+                }, false);
+            }
+        }</script><script>'use strict'; document.addEventListener('DOMContentLoaded', function() { var obfElements = document.querySelectorAll('.obfuscated-email'); obfElements.forEach(function(elem) { var dataType = elem.getAttribute('data-type'); var encodedEmail = elem.getAttribute('data-email'); var user = elem.getAttribute('data-user'); var domain = elem.getAttribute('data-domain'); var decodedEmail = ''; if (user && domain) { decodedEmail = user.split('').reverse().join('') + '@' + domain.split('').reverse().join(''); } else if (encodedEmail) { const parts = encodedEmail.split('@'); if (parts.length === 2) { decodedEmail = parts[0].split('').reverse().join('') + '@' + parts[1].split('').reverse().join(''); } else { decodedEmail = encodedEmail; } } if (dataType === 'mailto') { var originalText = elem.textContent.trim(); var a = document.createElement('a'); a.href = 'mailto:' + decodedEmail; if (elem.classList.length > 0) { a.className = elem.className; } if (originalText === '') { a.textContent = decodedEmail; } else { a.textContent = originalText; } elem.parentNode.replaceChild(a, elem); } else if (dataType === 'text') { var textNode = document.createTextNode(decodedEmail); elem.parentNode.replaceChild(textNode, elem); } }); });</script><script>(function() {
+			var originalTitle = document.title;
+			var timeout;
+			document.addEventListener("visibilitychange", function() {
+				if (document.hidden) {
+					timeout = setTimeout(function() {
+							document.title = "👀 We miss you! Come back!";
+						}, 200);
+				} else {
+					clearTimeout(timeout);
+					setTimeout(function() {
+							document.title = "🎉 Welcome back!";
+							setTimeout(function() {
+								document.title = originalTitle;
+							}, 2000);
+						}, 100);
+				}
+			});
+		})();</script><script src="https://ehmi.se/blog/media/plugins/pagePrefetching/quicklink.umd.js"></script><script>window.addEventListener('load', () => {
+					quicklink.listen({
+						prerender: true,
+						el: document.querySelector('body'),
+						delay: 0,
+						limit: 5,
+						throttle: 5,
+						timeout: 2000
+					});
+				});</script><div class="pcb" data-behaviour="badge" data-behaviour-link="#cookie-settings" data-revision="1" data-config-ttl="90" data-debug-mode="false"><div role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="pcb-title" aria-describedby="pcb-txt" class="pcb__banner pcb__banner--right"><div class="pcb__inner"><div id="pcb-title" role="heading" aria-level="2" class="pcb__title">This website uses cookies</div><div id="pcb-txt" class="pcb__txt">Select which cookies to opt-in to via the checkboxes below; our website uses cookies to examine site traffic and user activity while on our site, for marketing, and to provide social media functionality. <a href="https://ehmi.se/blog/privacy-policy-for-ehmi/">More details...</a></div><div class="pcb__buttons"><button type="button" class="pcb__btn pcb__btn--link pcb__btn--configure" aria-haspopup="dialog">Manage preferences</button> <button type="button" class="pcb__btn pcb__btn--reject">Reject</button> <button type="button" class="pcb__btn pcb__btn--solid pcb__btn--accept">Accept all</button></div></div></div><div class="pcb__popup" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="pcb-popup-title"><div class="pcb__popup__wrapper"><div class="pcb__inner pcb__popup__inner"><div class="pcb__popup__heading"><div id="pcb-popup-title" role="heading" aria-level="2" class="pcb__title">Cookie settings</div><button class="pcb__popup__close" aria-label="Close"></button></div><div class="pcb__popup__content"><div class="pcb__txt pcb__popup__txt">We use cookies to enhance your browsing experience, serve personalized ads or content, and analyze our traffic. By clicking "Accept All", you consent to our use of cookies. <a href="https://ehmi.se/blog/privacy-policy-for-ehmi/">More details...</a></div><ul class="pcb__groups"><li class="pcb__group"><details><summary class="pcb__group__title no-desc">Required</summary></details><div class="pcb__popup__switch is-checked"><input type="checkbox" data-group-name="" id="pcb-group-0" checked="checked"> <label for="pcb-group-0">Required</label></div></li></ul></div><div class="pcb__buttons pcb__popup__buttons"><button type="button" class="pcb__btn pcb__btn--solid pcb__btn--accept">Accept all</button> <button type="button" class="pcb__btn pcb__btn--reject">Reject all</button> <button type="button" class="pcb__btn pcb__btn--save">Save settings</button></div></div></div></div><div class="pcb__overlay" aria-hidden="true"></div><button class="pcb__badge" aria-label="Cookie Policy" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" width="40" height="40" viewBox="0 0 23 23" fill="currentColor"><path d="M21.41 12.71c-.08-.01-.15 0-.22 0h-.03c-.03 0-.05 0-.08.01-.07 0-.13.01-.19.04-.52.21-1.44.19-2.02-.22-.44-.31-.65-.83-.62-1.53a.758.758 0 0 0-.27-.61.73.73 0 0 0-.65-.14c-1.98.51-3.49.23-4.26-.78-.82-1.08-.73-2.89.24-4.49.14-.23.14-.52 0-.75a.756.756 0 0 0-.67-.36c-.64.03-1.11-.1-1.31-.35-.19-.26-.13-.71-.01-1.29.04-.18.06-.38.03-.59-.05-.4-.4-.7-.81-.66C5.1 1.54 1 6.04 1 11.48 1 17.28 5.75 22 11.6 22c5.02 0 9.39-3.54 10.39-8.42.08-.4-.18-.78-.58-.87Zm-9.81 7.82c-5.03 0-9.12-4.06-9.12-9.06 0-4.34 3.05-8 7.25-8.86-.08.7.05 1.33.42 1.81.24.32.66.67 1.38.84-.76 1.86-.65 3.78.36 5.11.61.81 2.03 2 4.95 1.51.18.96.71 1.54 1.18 1.87.62.43 1.38.62 2.1.62.05 0 .09 0 .13-.01-1.23 3.64-4.7 6.18-8.64 6.18ZM13 17c0 .55-.45 1-1 1s-1-.45-1-1 .45-1 1-1 1 .45 1 1Zm5.29-12.3a.99.99 0 0 1-.29-.71c0-.55.45-.99 1-.99a1 1 0 0 1 .71.3c.19.19.29.44.29.71 0 .55-.45.99-1 .99a1 1 0 0 1-.71-.3ZM9 13.5c0 .83-.67 1.5-1.5 1.5S6 14.33 6 13.5 6.67 12 7.5 12s1.5.67 1.5 1.5Zm3.25.81a.744.744 0 0 1-.06-1.05c.28-.32.75-.34 1.05-.06.31.28.33.75.05 1.06-.15.16-.35.25-.56.25-.18 0-.36-.06-.5-.19ZM8.68 7.26c.41.37.44 1 .07 1.41-.2.22-.47.33-.75.33a.96.96 0 0 1-.67-.26c-.41-.37-.44-1-.07-1.41.37-.42 1-.45 1.41-.08Zm11.48 1.88c.18-.19.52-.19.7 0 .05.04.09.1.11.16.03.06.04.12.04.19 0 .13-.05.26-.15.35-.09.1-.22.15-.35.15s-.26-.05-.35-.15a.355.355 0 0 1-.11-.16.433.433 0 0 1-.04-.19c0-.13.05-.26.15-.35Zm-4.93-1.86a.75.75 0 1 1 1.059-1.06.75.75 0 0 1-1.059 1.06Z"/></svg></button></div><script>window.dataLayer = window.dataLayer || [];
+                function gtag() { dataLayer.push(arguments); }
+
+                window.publiiCBGCM = {
+                    defaultState: {"ad_storage":true,"ad_personalization":true,"ad_user_data":true,"analytics_storage":true,"personalization_storage":true,"functionality_storage":true,"security_storage":false},
+                    groups: []
+                };
+            
+            (function(win) {
+    if (!document.querySelector('.pcb')) {
+        return;
+    }
+
+    var cbConfig = {
+        behaviour: document.querySelector('.pcb').getAttribute('data-behaviour'),
+        behaviourLink: document.querySelector('.pcb').getAttribute('data-behaviour-link'),
+        revision: document.querySelector('.pcb').getAttribute('data-revision'),
+        configTTL: parseInt(document.querySelector('.pcb').getAttribute('data-config-ttl'), 10),
+        debugMode: document.querySelector('.pcb').getAttribute('data-debug-mode') === 'true',
+        initialState: null,
+        initialLsState: null,
+        previouslyAccepted: []
+    };
+
+    var cbUI = {
+        wrapper: document.querySelector('.pcb'),
+        banner: {
+            element: null,
+            btnAccept: null,
+            btnReject: null,
+            btnConfigure: null
+        },
+        popup: {
+            element: null,
+            btnClose: null,
+            btnSave: null,
+            btnAccept: null,
+            btnReject: null,
+            checkboxes: null,
+        },
+        overlay: null,
+        badge: null,
+        blockedScripts: document.querySelectorAll('script[type^="gdpr-blocker/"]'),
+        triggerLinks: cbConfig.behaviourLink ? document.querySelectorAll('a[href*="' + cbConfig.behaviourLink + '"]') : null
+    };
+
+    function initUI () {
+        // setup banner elements
+        cbUI.banner.element = cbUI.wrapper.querySelector('.pcb__banner');
+        cbUI.banner.btnAccept = cbUI.banner.element.querySelector('.pcb__btn--accept');
+        cbUI.banner.btnReject = cbUI.banner.element.querySelector('.pcb__btn--reject');
+        cbUI.banner.btnConfigure = cbUI.banner.element.querySelector('.pcb__btn--configure');
+
+        // setup popup elements
+        if (cbUI.wrapper.querySelector('.pcb__popup')) {
+            cbUI.popup.element = cbUI.wrapper.querySelector('.pcb__popup');
+            cbUI.popup.btnClose = cbUI.wrapper.querySelector('.pcb__popup__close');
+            cbUI.popup.btnSave = cbUI.popup.element.querySelector('.pcb__btn--save');
+            cbUI.popup.btnAccept = cbUI.popup.element.querySelector('.pcb__btn--accept');
+            cbUI.popup.btnReject = cbUI.popup.element.querySelector('.pcb__btn--reject');
+            cbUI.popup.checkboxes = cbUI.popup.element.querySelector('input[type="checkbox"]');
+            // setup overlay
+            cbUI.overlay = cbUI.wrapper.querySelector('.pcb__overlay');
+        }
+
+        cbUI.badge = cbUI.wrapper.querySelector('.pcb__badge');
+
+        if (cbConfig.behaviour.indexOf('link') > -1) {
+            for (var i = 0; i < cbUI.triggerLinks.length; i++) {
+                cbUI.triggerLinks[i].addEventListener('click', function(e) {
+                    e.preventDefault();
+                    showBannerOrPopup();
+                });
+            }
+        }
+    }
+
+    function initState () {
+        var lsKeyName = getConfigName();
+        var currentConfig = localStorage.getItem(lsKeyName);
+        var configIsFresh = checkIfConfigIsFresh();
+
+        if (!configIsFresh || currentConfig === null) {
+            if (cbConfig.debugMode) {
+                console.log('🍪 Config not found, or configuration expired');
+            }
+
+            if (window.publiiCBGCM) {
+                gtag('consent', 'default', {
+                    'ad_storage': window.publiiCBGCM.defaultState.ad_storage ? 'granted' : 'denied',
+                    'ad_personalization': window.publiiCBGCM.defaultState.ad_personalization ? 'granted' : 'denied',
+                    'ad_user_data': window.publiiCBGCM.defaultState.ad_user_data ? 'granted' : 'denied',
+                    'analytics_storage': window.publiiCBGCM.defaultState.analytics_storage ? 'granted' : 'denied',
+                    'personalization_storage': window.publiiCBGCM.defaultState.personalization_storage ? 'granted' : 'denied',
+                    'functionality_storage': window.publiiCBGCM.defaultState.functionality_storage ? 'granted' : 'denied',
+                    'security_storage': window.publiiCBGCM.defaultState.security_storage ? 'granted' : 'denied'
+                });  
+                
+                if (cbConfig.debugMode) {
+                    console.log('🍪 GCMv2 DEFAULT STATE: ' + JSON.stringify({
+                        'ad_storage': window.publiiCBGCM.defaultState.ad_storage ? 'granted' : 'denied',
+                        'ad_personalization': window.publiiCBGCM.defaultState.ad_personalization ? 'granted' : 'denied',
+                        'ad_user_data': window.publiiCBGCM.defaultState.ad_user_data ? 'granted' : 'denied',
+                        'analytics_storage': window.publiiCBGCM.defaultState.analytics_storage ? 'granted' : 'denied',
+                        'personalization_storage': window.publiiCBGCM.defaultState.personalization_storage ? 'granted' : 'denied',
+                        'functionality_storage': window.publiiCBGCM.defaultState.functionality_storage ? 'granted' : 'denied',
+                        'security_storage': window.publiiCBGCM.defaultState.security_storage ? 'granted' : 'denied'
+                    }));
+                }
+            }
+
+            showBanner();
+        } else if (typeof currentConfig === 'string') {
+            if (cbConfig.debugMode) {
+                console.log('🍪 Config founded');
+            }
+
+            cbConfig.initialLsState = currentConfig.split(',');
+
+            if (window.publiiCBGCM) {
+                gtag('consent', 'default', {
+                    'ad_storage': getDefaultConsentState(currentConfig, 'ad_storage'),
+                    'ad_personalization': getDefaultConsentState(currentConfig, 'ad_personalization'),
+                    'ad_user_data': getDefaultConsentState(currentConfig, 'ad_user_data'),
+                    'analytics_storage': getDefaultConsentState(currentConfig, 'analytics_storage'),
+                    'personalization_storage': getDefaultConsentState(currentConfig, 'personalization_storage'),
+                    'functionality_storage': getDefaultConsentState(currentConfig, 'functionality_storage'),
+                    'security_storage': getDefaultConsentState(currentConfig, 'security_storage')
+                });
+                
+                if (cbConfig.debugMode) {
+                    console.log('🍪 GCMv2 DEFAULT STATE: ' + JSON.stringify({
+                        'ad_storage': getDefaultConsentState(currentConfig, 'ad_storage'),
+                        'ad_personalization': getDefaultConsentState(currentConfig, 'ad_personalization'),
+                        'ad_user_data': getDefaultConsentState(currentConfig, 'ad_user_data'),
+                        'analytics_storage': getDefaultConsentState(currentConfig, 'analytics_storage'),
+                        'personalization_storage': getDefaultConsentState(currentConfig, 'personalization_storage'),
+                        'functionality_storage': getDefaultConsentState(currentConfig, 'functionality_storage'),
+                        'security_storage': getDefaultConsentState(currentConfig, 'security_storage')
+                    }));
+                }
+            }
+
+            showBadge();
+
+            if (cbUI.popup.element) {
+                var allowedGroups = currentConfig.split(',');
+                var checkedCheckboxes = cbUI.popup.element.querySelectorAll('input[type="checkbox"]:checked');
+
+                for (var j = 0; j < checkedCheckboxes.length; j++) {
+                    var name = checkedCheckboxes[j].getAttribute('data-group-name');
+
+                    if (name && name !== '-' && allowedGroups.indexOf(name) === -1) {
+                        checkedCheckboxes[j].checked = false;
+                    }
+                }
+
+                for (var i = 0; i < allowedGroups.length; i++) {
+                    var checkbox = cbUI.popup.element.querySelector('input[type="checkbox"][data-group-name="' + allowedGroups[i] + '"]');
+
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
+
+                    allowCookieGroup(allowedGroups[i]);
+                }
+            }
+        }
+
+        setTimeout(function () {
+            cbConfig.initialState = getInitialStateOfConsents();
+        }, 0);
+    }
+
+    function checkIfConfigIsFresh () {
+        var lastConfigSave = localStorage.getItem('publii-gdpr-cookies-config-save-date');
+
+        if (lastConfigSave === null) {
+            return false;
+        }
+
+        lastConfigSave = parseInt(lastConfigSave, 10);
+
+        if (lastConfigSave === 0) {
+            return true;
+        }
+
+        if (+new Date() - lastConfigSave < cbConfig.configTTL * 24 * 60 * 60 * 1000) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function getDefaultConsentState (currentConfig, consentGroup) {
+        let configGroups = currentConfig.split(',');
+
+        for (let i = 0; i < configGroups.length; i++) {
+            let groupName = configGroups[i];
+            let group = window.publiiCBGCM.groups.find(group => group.cookieGroup === groupName);
+
+            if (group && group[consentGroup]) {
+                return 'granted';
+            }
+        }  
+        
+        if (window.publiiCBGCM.defaultState[consentGroup]) {
+            return 'granted'; 
+        }
+        
+        return 'denied';
+    }
+
+    function initBannerEvents () {
+        cbUI.banner.btnAccept.addEventListener('click', function (e) {
+            e.preventDefault();
+            acceptAllCookies('banner');
+            showBadge();
+        }, false);
+
+        if (cbUI.banner.btnReject) {
+            cbUI.banner.btnReject.addEventListener('click', function (e) {
+                e.preventDefault();
+                rejectAllCookies();
+                showBadge();
+            }, false);
+        }
+
+        if (cbUI.banner.btnConfigure) {
+            cbUI.banner.btnConfigure.addEventListener('click', function (e) {
+                e.preventDefault();
+                hideBanner();
+                showAdvancedPopup();
+                showBadge();
+            }, false);
+        }
+    }
+
+    function initPopupEvents () {
+        if (!cbUI.popup.element) {
+            return;
+        }
+
+        cbUI.overlay.addEventListener('click', function (e) {
+            hideAdvancedPopup();
+        }, false);
+
+        cbUI.popup.element.addEventListener('click', function (e) {
+            e.stopPropagation();
+        }, false);
+
+        cbUI.popup.btnAccept.addEventListener('click', function (e) {
+            e.preventDefault();
+            acceptAllCookies('popup');
+        }, false);
+
+        cbUI.popup.btnReject.addEventListener('click', function (e) {
+            e.preventDefault();
+            rejectAllCookies();
+        }, false);
+
+        cbUI.popup.btnSave.addEventListener('click', function (e) {
+            e.preventDefault();
+            saveConfiguration();
+        }, false);
+
+        cbUI.popup.btnClose.addEventListener('click', function (e) {
+            e.preventDefault();
+            hideAdvancedPopup();
+        }, false);
+    }
+
+    function initBadgeEvents () {
+        if (!cbUI.badge) {
+            return;
+        }
+
+        cbUI.badge.addEventListener('click', function (e) {
+            showBannerOrPopup();
+        }, false);
+    }
+
+    initUI();
+    initState();
+    initBannerEvents();
+    initPopupEvents();
+    initBadgeEvents();
+
+    /**
+     * API
+     */
+    function addScript (src, inline) {
+        var newScript = document.createElement('script');
+
+        if (src) {
+            newScript.setAttribute('src', src);
+        }
+
+        if (inline) {
+            newScript.text = inline;
+        }
+
+        document.body.appendChild(newScript);
+    }
+
+    function allowCookieGroup (allowedGroup) {
+        var scripts = document.querySelectorAll('script[type="gdpr-blocker/' + allowedGroup + '"]');
+        cbConfig.previouslyAccepted.push(allowedGroup);
+    
+        for (var j = 0; j < scripts.length; j++) {
+            addScript(scripts[j].src, scripts[j].text);
+        }
+
+        var groupEvent = new Event('publii-cookie-banner-unblock-' + allowedGroup);
+        document.body.dispatchEvent(groupEvent);
+        unlockEmbeds(allowedGroup);
+
+        if (cbConfig.debugMode) {
+            console.log('🍪 Allowed group: ' + allowedGroup);
+        }
+
+        if (window.publiiCBGCM && (!cbConfig.initialLsState || cbConfig.initialLsState.indexOf(allowedGroup) === -1)) {
+            let consentResult = {};
+            let group = window.publiiCBGCM.groups.find(group => group.cookieGroup === allowedGroup);
+
+            if (group) {
+                let foundSomeConsents = false;
+
+                Object.keys(group).forEach(key => {
+                    if (key !== 'cookieGroup' && group[key] === true) {
+                        consentResult[key] = 'granted';
+                        foundSomeConsents = true;
+                    }
+                });
+
+                if (foundSomeConsents) {
+                    gtag('consent', 'update', consentResult);   
+
+                    if (cbConfig.debugMode) {
+                        console.log('🍪 GCMv2 UPDATE: ' + JSON.stringify(consentResult));
+                    }
+                }
+            }
+        }
+    }
+
+    function showBannerOrPopup () {
+        if (cbUI.popup.element) {
+            showAdvancedPopup();
+        } else {
+            showBanner();
+        }
+    }
+
+    function showAdvancedPopup () {
+        cbUI.popup.element.classList.add('is-visible');
+        cbUI.overlay.classList.add('is-visible');
+        cbUI.popup.element.setAttribute('aria-hidden', 'false');
+        cbUI.overlay.setAttribute('aria-hidden', 'false');
+    }
+
+    function hideAdvancedPopup () {
+        cbUI.popup.element.classList.remove('is-visible');
+        cbUI.overlay.classList.remove('is-visible');
+        cbUI.popup.element.setAttribute('aria-hidden', 'true');
+        cbUI.overlay.setAttribute('aria-hidden', 'true');
+    }
+
+    function showBanner () {
+        cbUI.banner.element.classList.add('is-visible');
+        cbUI.banner.element.setAttribute('aria-hidden', 'false');
+    }
+
+    function hideBanner () {
+        cbUI.banner.element.classList.remove('is-visible');
+        cbUI.banner.element.setAttribute('aria-hidden', 'true');
+    }
+
+    function showBadge () {
+        if (!cbUI.badge) {
+            return;
+        }
+
+        cbUI.badge.classList.add('is-visible');
+        cbUI.badge.setAttribute('aria-hidden', 'false');
+    }
+
+    function getConfigName () {
+        var lsKeyName = 'publii-gdpr-allowed-cookies';
+
+        if (cbConfig.revision) {
+            lsKeyName = lsKeyName + '-v' + parseInt(cbConfig.revision, 10);
+        }
+
+        return lsKeyName;
+    }
+
+    function storeConfiguration (allowedGroups) {
+        var lsKeyName = getConfigName();
+        var dataToStore = allowedGroups.join(',');
+        localStorage.setItem(lsKeyName, dataToStore);
+
+        if (cbConfig.configTTL === 0) {
+            localStorage.setItem('publii-gdpr-cookies-config-save-date', 0);
+
+            if (cbConfig.debugMode) {
+                console.log('🍪 Store never expiring configuration');
+            }
+        } else {
+            localStorage.setItem('publii-gdpr-cookies-config-save-date', +new Date());
+        }
+    }
+
+    function getInitialStateOfConsents () {
+        if (!cbUI.popup.element) {
+            return [];
+        }
+
+        var checkedGroups = cbUI.popup.element.querySelectorAll('input[type="checkbox"]:checked');
+        var groups = [];
+
+        for (var i = 0; i < checkedGroups.length; i++) {
+            var allowedGroup = checkedGroups[i].getAttribute('data-group-name');
+
+            if (allowedGroup !== '') {
+                groups.push(allowedGroup);
+            }
+        }
+
+        if (cbConfig.debugMode) {
+            console.log('🍪 Initial state: ' + groups.join(', '));
+        }
+
+        return groups;
+    }
+
+    function getCurrentStateOfConsents () {
+        if (!cbUI.popup.element) {
+            return [];
+        }
+
+        var checkedGroups = cbUI.popup.element.querySelectorAll('input[type="checkbox"]:checked');
+        var groups = [];
+
+        for (var i = 0; i < checkedGroups.length; i++) {
+            var allowedGroup = checkedGroups[i].getAttribute('data-group-name');
+
+            if (allowedGroup !== '') {
+                groups.push(allowedGroup);
+            }
+        }
+
+        if (cbConfig.debugMode) {
+            console.log('🍪 State to save: ' + groups.join(', '));
+        }
+
+        return groups;
+    }
+
+    function getAllGroups () {
+        if (!cbUI.popup.element) {
+            return [];
+        }
+
+        var checkedGroups = cbUI.popup.element.querySelectorAll('input[type="checkbox"]');
+        var groups = [];
+
+        for (var i = 0; i < checkedGroups.length; i++) {
+            var allowedGroup = checkedGroups[i].getAttribute('data-group-name');
+
+            if (allowedGroup !== '') {
+                groups.push(allowedGroup);
+            }
+        }
+
+        return groups;
+    }
+
+    function acceptAllCookies (source) {
+        var groupsToAccept = getAllGroups();
+        storeConfiguration(groupsToAccept);
+
+        for (var i = 0; i < groupsToAccept.length; i++) {
+            var group = groupsToAccept[i];
+
+            if (cbConfig.initialState.indexOf(group) > -1 || cbConfig.previouslyAccepted.indexOf(group) > -1) {
+                if (cbConfig.debugMode) {
+                    console.log('🍪 Skip previously activated group: ' + group);
+                }
+
+                continue;
+            }
+
+            allowCookieGroup(group);
+        }
+
+        if (cbUI.popup.element) {
+            var checkboxesToCheck = cbUI.popup.element.querySelectorAll('input[type="checkbox"]');
+
+            for (var j = 0; j < checkboxesToCheck.length; j++) {
+                checkboxesToCheck[j].checked = true;
+            }
+        }
+
+        if (cbConfig.debugMode) {
+            console.log('🍪 Accept all cookies: ', groupsToAccept.join(', '));
+        }
+
+        if (source === 'popup') {
+            hideAdvancedPopup();
+        } else if (source === 'banner') {
+            hideBanner();
+        }
+    }
+
+    function rejectAllCookies () {
+        if (cbConfig.debugMode) {
+            console.log('🍪 Reject all cookies');
+        }
+
+        storeConfiguration([]);
+        setTimeout(function () {
+            window.location.reload();
+        }, 100);
+    }
+
+    function saveConfiguration () {
+        var groupsToAccept = getCurrentStateOfConsents();
+        storeConfiguration(groupsToAccept);
+
+        if (cbConfig.debugMode) {
+            console.log('🍪 Save new config: ', groupsToAccept.join(', '));
+        }
+
+        if (reloadIsNeeded(groupsToAccept)) {
+            setTimeout(function () {
+                window.location.reload();
+            }, 100);
+            return;
+        }
+
+        for (var i = 0; i < groupsToAccept.length; i++) {
+            var group = groupsToAccept[i];
+
+            if (cbConfig.initialState.indexOf(group) > -1 || cbConfig.previouslyAccepted.indexOf(group) > -1) {
+                if (cbConfig.debugMode) {
+                    console.log('🍪 Skip previously activated group: ' + group);
+                }
+
+                continue;
+            }
+
+            allowCookieGroup(group);
+        }
+
+        hideAdvancedPopup();
+    }
+
+    function reloadIsNeeded (groupsToAccept) {
+        // check if user rejected consent for initial groups
+        var initialGroups = cbConfig.initialState;
+        var previouslyAcceptedGroups = cbConfig.previouslyAccepted;
+        var groupsToCheck = initialGroups.concat(previouslyAcceptedGroups);
+
+        for (var i = 0; i < groupsToCheck.length; i++) {
+            var groupToCheck = groupsToCheck[i];
+
+            if (groupToCheck !== '' && groupsToAccept.indexOf(groupToCheck) === -1) {
+                if (cbConfig.debugMode) {
+                    console.log('🍪 Reload is needed due lack of: ', groupToCheck);
+                }
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    function unlockEmbeds (cookieGroup) {
+        var iframesToUnlock = document.querySelectorAll('.pec-wrapper[data-consent-group-id="' + cookieGroup + '"]');
+
+        for (var i = 0; i < iframesToUnlock.length; i++) {
+            var iframeWrapper = iframesToUnlock[i];
+            iframeWrapper.querySelector('.pec-overlay').classList.remove('is-active');
+            iframeWrapper.querySelector('.pec-overlay').setAttribute('aria-hidden', 'true');
+            var iframe = iframeWrapper.querySelector('iframe');
+            iframe.setAttribute('src', iframe.getAttribute('data-consent-src'));
+        }
+    }
+
+    win.publiiEmbedConsentGiven = function (cookieGroup) {
+        // it will unlock embeds
+        allowCookieGroup(cookieGroup);
+
+        var checkbox = cbUI.popup.element.querySelector('input[type="checkbox"][data-group-name="' + cookieGroup + '"]');
+
+        if (checkbox) {
+            checkbox.checked = true;
+        }
+
+        var groupsToAccept = getCurrentStateOfConsents();
+        storeConfiguration(groupsToAccept);
+
+        if (cbConfig.debugMode) {
+            console.log('🍪 Save new config: ', groupsToAccept.join(', '));
+        }
+    }
+})(window);</script></body></html>

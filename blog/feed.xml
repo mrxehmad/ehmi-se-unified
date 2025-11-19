@@ -1,0 +1,1279 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
+    <title>Ehmi</title>
+    <link href="https://ehmi.se/blog/feed.xml" rel="self" />
+    <link href="https://ehmi.se/blog" />
+    <updated>2025-11-17T02:53:35+05:00</updated>
+    <author>
+        <name>Ehmad</name>
+    </author>
+    <id>https://ehmi.se/blog</id>
+
+    <entry>
+        <title>How to Use Discord Webhook with Examples: The Ultimate Step-by-Step Guide</title>
+        <author>
+            <name>Ehmad</name>
+        </author>
+        <link href="https://ehmi.se/blog/how-to-use-discord-webhook-with-examples-the-ultimate-step-by-step-guide/"/>
+        <id>https://ehmi.se/blog/how-to-use-discord-webhook-with-examples-the-ultimate-step-by-step-guide/</id>
+        <media:content url="https://ehmi.se/blog/media/posts/47/image_proxy-2.png" medium="image" />
+            <category term="webhook "/>
+            <category term="tutorial"/>
+            <category term="discord"/>
+
+        <updated>2025-08-24T18:42:09+05:00</updated>
+            <summary>
+                <![CDATA[
+                        <img src="https://ehmi.se/blog/media/posts/47/image_proxy-2.png" alt="" />
+                    Introduction to Discord Webhooks Discord has grown beyond a simple voice chat platform into a full-fledged community hub for gamers, developers, and businesses alike. One of the most powerful tools it offers is webhooks. But what exactly are Discord webhooks, and how can you use&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                    <p><img src="https://ehmi.se/blog/media/posts/47/image_proxy-2.png" class="type:primaryImage" alt="" /></p>
+                <h3 id="introduction-to-discord-webhooks"><strong>Introduction to Discord Webhooks</strong></h3>
+<p>Discord has grown beyond a simple voice chat platform into a full-fledged community hub for gamers, developers, and businesses alike. One of the most powerful tools it offers is <strong>webhooks</strong>.</p><p>But what exactly are Discord webhooks, and how can you use them effectively? Whether you’re a beginner looking to send automated notifications or a developer integrating external apps, this guide will walk you through everything you need to know—complete with practical examples.</p><hr>
+<h2 id="what-are-discord-webhooks"><strong>What Are Discord Webhooks?</strong></h2>
+<p>At its core, a <strong>Discord webhook</strong> is a way for external applications to send messages into a Discord channel automatically. Instead of typing a message yourself, you can configure apps or scripts to push content directly into your server.</p><p>In simpler terms, think of webhooks as automated messengers that can deliver updates, alerts, or notifications straight into your community.</p><hr>
+<h2 id="why-use-discord-webhooks"><strong>Why Use Discord Webhooks?</strong></h2>
+<p>Some of the most common reasons people use Discord webhooks include:</p><ul>
+<li><p><strong>Automated Notifications</strong> – Get alerts when a new commit is pushed on GitHub or when your server goes down.</p></li>
+<li><p><strong>Integration with External Apps</strong> – Connect platforms like Trello, GitHub, or Jenkins with your Discord server.</p></li>
+<li><p><strong>Custom Announcements</strong> – Post updates from a website, blog, or bot without manual input.</p></li>
+</ul>
+<hr>
+<h2 id="benefits-of-discord-webhooks-for-developers-and-communities"><strong>Benefits of Discord Webhooks for Developers and Communities</strong></h2>
+<ul>
+<li><p>Saves time with automation</p></li>
+<li><p>Improves communication in communities</p></li>
+<li><p>Provides real-time monitoring (e.g., error alerts, API logs)</p></li>
+<li><p>Easy to set up without coding knowledge</p></li>
+</ul>
+<hr>
+<h2 id="setting-up-a-discord-webhook"><strong>Setting Up a Discord Webhook</strong></h2>
+<h3 id="prerequisites-before-creating-a-webhook"><strong>Prerequisites Before Creating a Webhook</strong></h3>
+<p>Before you start, make sure you have:</p><ul>
+<li><p>A Discord server where you have <strong>Manage Webhooks</strong> permission</p></li>
+<li><p>A channel where notifications will be posted</p></li>
+<li><p>Basic familiarity with copy-pasting links</p></li>
+</ul>
+<hr>
+<h3 id="step-by-step-guide-to-creating-a-webhook-in-discord"><strong>Step-by-Step Guide to Creating a Webhook in Discord</strong></h3>
+<ol>
+<li><p>Open <strong>Server Settings</strong> in Discord.</p></li>
+<li><p>Select <strong>Integrations</strong> → <strong>Webhooks</strong>.</p></li>
+<li><p>Click <strong>New Webhook</strong>.</p></li>
+<li><p>Give your webhook a name and assign it to a channel.</p></li>
+<li><p>Copy the <strong>Webhook URL</strong>—this is what you’ll use to send data.</p></li>
+</ol>
+<h2 id="image-description"><figure class="post__image"><img loading="lazy" src="https://ehmi.se/blog/media/posts/47/image_proxy.png" alt="Image description" width="753" height="310" sizes="(max-width: 1920px) 100vw, 1920px" srcset="https://ehmi.se/blog/media/posts/47/responsive/image_proxy-xs.webp 640w ,https://ehmi.se/blog/media/posts/47/responsive/image_proxy-sm.webp 768w ,https://ehmi.se/blog/media/posts/47/responsive/image_proxy-md.webp 1024w ,https://ehmi.se/blog/media/posts/47/responsive/image_proxy-lg.webp 1366w ,https://ehmi.se/blog/media/posts/47/responsive/image_proxy-xl.webp 1600w ,https://ehmi.se/blog/media/posts/47/responsive/image_proxy-2xl.webp 1920w"></figure></h2>
+<h3 id="managing-and-customizing-your-webhook"><strong>Managing and Customizing Your Webhook</strong></h3>
+<p>You can:</p><ul>
+<li><p>Assign an avatar (custom profile picture)</p></li>
+<li><p>Change its posting channel anytime</p></li>
+<li><p>Rename the webhook for different use cases</p></li>
+</ul>
+<hr>
+<h2 id="how-discord-webhooks-work-internally"><strong>How Discord Webhooks Work Internally</strong></h2>
+<h3 id="anatomy-of-a-webhook-url"><strong>Anatomy of a Webhook URL</strong></h3>
+<p>A Discord webhook URL looks like this:</p><pre><code>https://discord.com/api/webhooks/{webhook.id}/{webhook.token}
+</code></pre>
+<p>Both the <strong>ID</strong> and <strong>Token</strong> must be kept secure, as anyone with this link can post messages to your channel.</p><hr>
+<h3 id="supported-data-formats-json--embeds"><strong>Supported Data Formats (JSON &amp; Embeds)</strong></h3>
+<ul>
+<li><p><strong>Plain text messages</strong> – Quick updates</p></li>
+<li><p><strong>JSON payloads</strong> – Structured data</p></li>
+<li><p><strong>Embeds</strong> – Rich content with titles, descriptions, images, and fields</p></li>
+</ul>
+<hr>
+<h2 id="sending-messages-with-discord-webhooks"><strong>Sending Messages with Discord Webhooks</strong></h2>
+<h3 id="sending-a-simple-text-message-via-curl"><strong>Sending a Simple Text Message via cURL</strong></h3>
+<pre><code class="language-bash">curl -H &quot;Content-Type: application/json&quot; \
+-d &#39;{&quot;content&quot;:&quot;Hello from Discord Webhook!&quot;}&#39; \
+https://discord.com/api/webhooks/WEBHOOK_ID/WEBHOOK_TOKEN
+</code></pre>
+<hr>
+<h3 id="sending-json-payloads-with-custom-formatting"><strong>Sending JSON Payloads with Custom Formatting</strong></h3>
+<pre><code class="language-json">{
+  &quot;content&quot;: &quot;New update available!&quot;,
+  &quot;username&quot;: &quot;Update Bot&quot;,
+  &quot;avatar_url&quot;: &quot;https://example.com/avatar.png&quot;
+}
+</code></pre>
+<hr>
+<h3 id="adding-embeds-for-rich-content"><strong>Adding Embeds for Rich Content</strong></h3>
+<pre><code class="language-json">{
+  &quot;embeds&quot;: [{
+    &quot;title&quot;: &quot;Server Status&quot;,
+    &quot;description&quot;: &quot;✅ All systems operational&quot;,
+    &quot;color&quot;: 65280
+  }]
+}
+</code></pre>
+<hr>
+<h2 id="practical-examples-of-using-discord-webhooks"><strong>Practical Examples of Using Discord Webhooks</strong></h2>
+<h3 id="example-1-github-push-notifications">Example 1: GitHub Push Notifications</h3>
+<p>In your GitHub repository, go to Settings → Webhooks → Add Webhook.</p><p>Paste your Discord Webhook URL into the “Payload URL” field.</p><p>Set the Content type to application/json and choose which events you’d like (e.g., push, pull_request, or issues).</p><p>Now, whenever someone pushes new code, merges a pull request, or opens an issue, Discord will automatically post a structured message in your chosen channel.</p><p>This makes it easy for your whole team to stay up-to-date on changes without leaving Discord.</p><h3 id="example-2-server-monitoring-alerts">Example 2: Server Monitoring Alerts</h3>
+<p>Use free uptime monitoring services like UptimeRobot, BetterUptime, or even custom scripts running on your server.</p><p>Configure these tools to send alerts to your Discord Webhook if your website or application goes offline, response times spike, or critical errors occur.</p><p>You can customize alert frequency (e.g., every 5 minutes if downtime persists) and format the message to include server name, timestamp, and current status.</p><p>This ensures your team gets real-time alerts directly in Discord, making it easier to respond quickly without having to constantly check dashboards.</p><h3 id="example-3-custom-bot-like-notifications">Example 3: Custom Bot-like Notifications</h3>
+<p>Even without coding a bot, Discord webhooks allow you to send styled messages using JSON payloads.</p><p>You can customize:</p><p>Username &amp; Avatar → Make messages appear as if they came from a bot or a custom account.</p><p>Rich Embeds → Add colored sidebars, bold titles, clickable links, images, and even fields with structured data.</p><p>Timestamps → Automatically show when an event occurred.</p><p>Example: You could create a webhook that posts a daily summary like:</p><p>“✅ All systems running smoothly”</p><p>“⚠️ Warning: Disk usage at 85%”</p><p>This makes the webhook feel like a lightweight bot, perfect for dashboards, reminders, or project updates without needing to host or code a full bot.</p><h2 id="advanced-webhook-features"><strong>Advanced Webhook Features</strong></h2>
+<p>Discord webhooks may seem simple at first glance, but they offer powerful features when combined with external scripts and automation tools. Let’s break down some advanced capabilities.</p><hr>
+<h3 id="using-multiple-webhooks-in-one-channel"><strong>Using Multiple Webhooks in One Channel</strong></h3>
+<ul>
+<li><p>A single channel can have <strong>multiple webhooks</strong> assigned.</p></li>
+<li><p>This is useful if you want different integrations—for example:</p><ul>
+<li><p>One webhook for GitHub updates</p></li>
+<li><p>Another webhook for server monitoring</p></li>
+<li><p>A third webhook for announcements</p></li>
+</ul>
+</li>
+</ul>
+<p><strong>Pro Tip:</strong> Assign unique usernames and avatars to differentiate which webhook sent the message.</p><hr>
+<h3 id="automating-webhooks-with-python-or-nodejs"><strong>Automating Webhooks with Python or Node.js</strong></h3>
+<p>Instead of manually using cURL, you can integrate webhooks into scripts or applications.</p><h4 id="example-sending-a-message-with-python-using-requests">Example: Sending a Message with Python (using <code>requests</code>)</h4>
+<pre><code class="language-python">import requests
+
+url = &quot;https://discord.com/api/webhooks/WEBHOOK_ID/WEBHOOK_TOKEN&quot;
+data = {
+    &quot;content&quot;: &quot;Hello from Python!&quot;,
+    &quot;username&quot;: &quot;Python Bot&quot;
+}
+
+response = requests.post(url, json=data)
+print(response.status_code)
+</code></pre>
+<h4 id="example-sending-a-message-with-nodejs">Example: Sending a Message with Node.js</h4>
+<pre><code class="language-javascript">const fetch = require(&quot;node-fetch&quot;);
+
+const url = &quot;https://discord.com/api/webhooks/WEBHOOK_ID/WEBHOOK_TOKEN&quot;;
+
+const data = {
+  content: &quot;Hello from Node.js!&quot;,
+  username: &quot;Node Bot&quot;
+};
+
+fetch(url, {
+  method: &quot;POST&quot;,
+  headers: { &quot;Content-Type&quot;: &quot;application/json&quot; },
+  body: JSON.stringify(data)
+})
+.then(res =&gt; console.log(res.status));
+</code></pre>
+<p>With these, you can automate <strong>alerts, reminders, and event notifications</strong>.</p><hr>
+<h3 id="rate-limits-and-best-practices"><strong>Rate Limits and Best Practices</strong></h3>
+<p>Discord webhooks are subject to <strong>rate limits</strong> to prevent spam:</p><ul>
+<li><p>Maximum of <strong>5 requests per second per webhook</strong></p></li>
+<li><p>Payload size should not exceed <strong>8 MB</strong></p></li>
+</ul>
+<p><strong>Best Practices:</strong></p><ul>
+<li><p>Bundle multiple messages into a single embed instead of spamming</p></li>
+<li><p>Don’t expose your webhook URL in public code repositories</p></li>
+<li><p>Use environment variables for storing webhook tokens securely</p></li>
+</ul>
+<hr>
+<h2 id="security-considerations-for-discord-webhooks"><strong>Security Considerations for Discord Webhooks</strong></h2>
+<h3 id="protecting-your-webhook-url"><strong>Protecting Your Webhook URL</strong></h3>
+<p>Anyone with your webhook URL can post messages in your channel. To secure it:</p><ul>
+<li><p><strong>Never share</strong> the URL publicly</p></li>
+<li><p>Store it in a safe location (e.g., <code>.env</code> file for projects)</p></li>
+<li><p>Regenerate the webhook if you suspect it has been compromised</p></li>
+</ul>
+<hr>
+<h3 id="common-mistakes-to-avoid"><strong>Common Mistakes to Avoid</strong></h3>
+<ul>
+<li><p>Posting <strong>sensitive information</strong> (passwords, API keys) through webhooks</p></li>
+<li><p>Forgetting to set the <strong>Content-Type</strong> header as <code>application/json</code></p></li>
+<li><p>Ignoring <strong>rate limits</strong>, which may result in failed requests</p></li>
+</ul>
+<hr>
+<h2 id="troubleshooting-common-webhook-issues"><strong>Troubleshooting Common Webhook Issues</strong></h2>
+<h3 id="why-is-my-webhook-not-sending"><strong>Why Is My Webhook Not Sending?</strong></h3>
+<p>Common reasons include:</p><ul>
+<li><p>Invalid webhook URL (copied incorrectly)</p></li>
+<li><p>Missing <strong>Content-Type</strong> header</p></li>
+<li><p>JSON payload formatting errors</p></li>
+</ul>
+<hr>
+<h3 id="debugging-json-payload-errors"><strong>Debugging JSON Payload Errors</strong></h3>
+<p>If Discord rejects your request, double-check:</p><ul>
+<li><p>Brackets <code>{}</code> and arrays <code>[]</code> are properly closed</p></li>
+<li><p>Field names are lowercase (e.g., <code>&quot;content&quot;</code>, not <code>&quot;Content&quot;</code>)</p></li>
+<li><p>Payload size does not exceed <strong>8 MB</strong></p></li>
+</ul>
+<p>You can validate JSON at <a href="https://jsonlint.com">https://jsonlint.com</a>.</p><hr>
+<h2 id="faqs-about-discord-webhooks"><strong>FAQs About Discord Webhooks</strong></h2>
+<h3 id="can-i-use-discord-webhooks-without-a-bot"><strong>Can I use Discord webhooks without a bot?</strong></h3>
+<p>Yes! Unlike bots, webhooks don’t require coding or OAuth2 setup. You simply paste the webhook URL into your script or integration tool.</p><hr>
+<h3 id="what-is-the-message-limit-for-webhooks"><strong>What is the message limit for webhooks?</strong></h3>
+<p>Each webhook message can have up to <strong>2000 characters in plain text</strong> or <strong>6000 characters if using embeds</strong>.</p><hr>
+<h3 id="how-many-webhooks-can-a-channel-have"><strong>How many webhooks can a channel have?</strong></h3>
+<p>A single channel can have up to <strong>10 webhooks</strong>.</p><hr>
+<h3 id="can-i-edit-or-delete-webhook-messages"><strong>Can I edit or delete webhook messages?</strong></h3>
+<p>Yes. Webhooks can <strong>edit</strong> or <strong>delete</strong> their own messages, but not those of other webhooks or users.</p><hr>
+<h3 id="are-discord-webhooks-free-to-use"><strong>Are Discord webhooks free to use?</strong></h3>
+<p>Absolutely! Discord provides webhooks free of charge, making them accessible to all communities and developers.</p><hr>
+<h3 id="can-i-schedule-webhook-messages"><strong>Can I schedule webhook messages?</strong></h3>
+<p>Not directly. However, you can schedule them using <strong>cron jobs</strong> in Linux or third-party automation tools like <strong>Zapier</strong> or <strong>IFTTT</strong>.</p><hr>
+<h2 id="conclusion"><strong>Conclusion</strong></h2>
+<p>Discord webhooks are one of the most powerful yet underrated features of the platform. Whether you’re a developer seeking real-time integrations or a community admin who wants automated updates, webhooks can save time, improve communication, and enhance engagement.</p><p>By following this guide, you’ve learned:</p><ul>
+<li><p>What Discord webhooks are and why they’re useful</p></li>
+<li><p>How to create and customize them</p></li>
+<li><p>How to send messages using cURL, JSON, Python, and Node.js</p></li>
+<li><p>Advanced features like embeds, automation, and security best practices</p></li>
+<li><p>Real-world examples for GitHub, monitoring, and notifications</p></li>
+</ul>
+<p>So go ahead—set up your own webhook today and unlock the full potential of Discord automation. 🚀</p>
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>Recovering Deleted Files from Encrypted rclone Backups</title>
+        <author>
+            <name>Ehmad</name>
+        </author>
+        <link href="https://ehmi.se/blog/recovering-deleted-files-from-encrypted-rclone-backups/"/>
+        <id>https://ehmi.se/blog/recovering-deleted-files-from-encrypted-rclone-backups/</id>
+
+        <updated>2025-08-12T12:51:04+05:00</updated>
+            <summary>
+                <![CDATA[
+                    Accidentally deleting a file from a production system can happen to anyone — a misplaced rm -rf, an accidental overwrite, or even a CMS update gone wrong. If you’ve been running automated rclone backups with encryption via rclone crypt, you have a powerful safety net.
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                <p>Accidentally deleting a file from a production system can happen to anyone — a misplaced <code>rm -rf</code>, an accidental overwrite, or even a CMS update gone wrong.
+If you’ve been running automated <strong>rclone</strong> backups with encryption via <code>rclone crypt</code>, you have a powerful safety net.</p><p>In this guide, we’ll walk through:</p><ul>
+<li>How encrypted rclone backups work</li>
+<li>How to verify your encrypted remote is working</li>
+<li>How to search for and locate deleted files</li>
+<li>How to restore them safely without breaking your live environment</li>
+<li>Best practices for making future recoveries faster</li>
+</ul>
+<hr>
+<h2 id="1-understanding-your-encrypted-backup-setup"><strong>1. Understanding Your Encrypted Backup Setup</strong></h2>
+<p>When you use <code>rclone crypt</code>, you are not uploading raw files. Instead:</p><ol>
+<li>Files are <strong>encrypted locally</strong> before leaving your machine</li>
+<li>Filenames and directory names are also scrambled (optional but recommended)</li>
+<li>The remote cloud storage provider only sees random binary data</li>
+<li>rclone decrypts transparently when you access the remote through the crypt configuration</li>
+</ol>
+<p>A typical configuration involves <strong>two remotes</strong>:</p><ul>
+<li>A <strong>base remote</strong> — e.g., an S3 bucket, Google Drive, etc.</li>
+<li>A <strong>crypt remote</strong> — pointing to a folder inside the base remote, where encryption is applied</li>
+</ul>
+<p>Example from <code>rclone.conf</code>:</p><pre><code class="language-ini">[my-backup]
+type = s3
+provider = Other
+access_key_id = ********
+secret_access_key = ********
+endpoint = https://s3.example.com
+
+[my-backup-crypt]
+type = crypt
+remote = my-backup:encrypted-storage
+password = &lt;encrypted-password&gt;
+password2 = &lt;encrypted-salt&gt;
+</code></pre>
+<p>With this setup, all operations happen on <code>my-backup-crypt:</code>, but the physical data is stored encrypted inside <code>my-backup:</code>. a complete indepth <a href="https://blog.ehmad.site/secure-your-backups-with-rclone-crypt-s3/">guide here</a> </p><hr>
+<h2 id="2-confirming-the-file-exists-in-backup"><strong>2. Confirming the File Exists in Backup</strong></h2>
+<p>When a file is deleted locally, your backup may still contain it — unless it has already been overwritten by a sync operation.</p><p><strong>Step 1 — List the folder where you expect the file to be</strong>:</p><pre><code class="language-bash">rclone --config=/path/to/rclone.conf ls my-backup-crypt:backups/var-www/html/
+</code></pre>
+<p>If the file is present, it will appear in the output along with its size.</p><p><strong>Step 2 — Search the entire backup if unsure</strong>:</p><pre><code class="language-bash">rclone --config=/path/to/rclone.conf ls my-backup-crypt:backups | grep index.php
+</code></pre>
+<p>This works even with encrypted remotes because rclone will decrypt filenames before showing them (as long as you’re accessing via the crypt remote).</p><hr>
+<h2 id="3-restoring-a-deleted-file"><strong>3. Restoring a Deleted File</strong></h2>
+<p>Once you’ve confirmed the file exists, restoring it is straightforward.</p><p><strong>Restore to the original location</strong>:</p><pre><code class="language-bash">rclone --config=/path/to/rclone.conf copy my-backup-crypt:backups/var-www/html/index.php /var/www/html/ -P
+</code></pre>
+<p><strong>Restore to a safe temporary folder first</strong> (recommended for production):</p><pre><code class="language-bash">mkdir -p /tmp/recovery-test
+rclone --config=/path/to/rclone.conf copy my-backup-crypt:backups/var-www/html/index.php /tmp/recovery-test -P
+</code></pre>
+<p>Once you confirm the file integrity, you can move it back into production.</p><hr>
+<h2 id="4-handling-versioned-or-snapshot-backups"><strong>4. Handling Versioned or Snapshot Backups</strong></h2>
+<p>If your backup strategy uses <strong>dated snapshots</strong> (e.g., <code>/backups/2025-08-10/var-www/...</code>), you can recover older versions:</p><pre><code class="language-bash">rclone --config=/path/to/rclone.conf copy my-backup-crypt:backups/2025-08-01/var-www/html/index.php /var/www/html/ -P
+</code></pre>
+<p>Snapshots are especially useful when a bad file sync might have overwritten the good copy in your main backup folder.</p><hr>
+<h2 id="5-troubleshooting-common-recovery-issues"><strong>5. Troubleshooting Common Recovery Issues</strong></h2>
+<h3 id="file-not-found"><strong>File Not Found</strong></h3>
+<ul>
+<li>Check if your backup script used <code>sync</code> instead of <code>copy</code> — <code>sync</code> can delete files from the remote if they are deleted locally.</li>
+<li>Look inside older dated snapshot folders.</li>
+</ul>
+<h3 id="permission-errors"><strong>Permission Errors</strong></h3>
+<ul>
+<li><p>Run with <code>sudo</code> if restoring to system-owned directories (e.g., <code>/etc</code>, <code>/var/www</code>).</p></li>
+<li><p>Example:</p><pre><code class="language-bash">sudo rclone --config=/path/to/rclone.conf copy ...
+</code></pre>
+</li>
+</ul>
+<h3 id="wrong-config"><strong>Wrong Config</strong></h3>
+<ul>
+<li><p>Ensure you’re using the correct <code>rclone.conf</code> that contains your <code>crypt</code> remote configuration.</p></li>
+<li><p>Example:</p><pre><code class="language-bash">rclone --config=/root/.config/rclone/rclone.conf ...
+</code></pre>
+</li>
+</ul>
+<hr>
+<h2 id="6-best-practices-for-easier-recovery-in-the-future"><strong>6. Best Practices for Easier Recovery in the Future</strong></h2>
+<ul>
+<li><strong>Keep snapshots</strong> — Avoid relying only on a single mirrored backup. Snapshots protect against accidental overwrites.</li>
+<li><strong>Separate configs for root and user</strong> — If backups are run with root, ensure the same config file is available when restoring.</li>
+<li><strong>Test recovery monthly</strong> — Randomly restore a few files to verify the process works.</li>
+<li><strong>Document your backup structure</strong> — Keep a map of where each directory is stored in the remote.</li>
+</ul>
+<hr>
+<h2 id="final-thoughts"><strong>Final Thoughts</strong></h2>
+<p>Using <code>rclone crypt</code> for encrypted backups gives you <strong>security, privacy, and flexibility</strong> — but recovery still requires you to know your backup layout and tools.
+By following a structured search → confirm → restore workflow, you can confidently recover lost files without exposing sensitive data or disrupting production services.</p><p>And remember: <strong>backups are only as good as your ability to restore them</strong>. Test them before you actually need them.</p>
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>Secure Your Backups with Rclone Crypt + S3</title>
+        <author>
+            <name>Ehmad</name>
+        </author>
+        <link href="https://ehmi.se/blog/secure-your-backups-with-rclone-crypt-s3/"/>
+        <id>https://ehmi.se/blog/secure-your-backups-with-rclone-crypt-s3/</id>
+
+        <updated>2025-07-18T15:24:22+05:00</updated>
+            <summary>
+                <![CDATA[
+                    Overview Backing up critical data is essential, but encrypting that backup adds a much-needed layer of security. This guide will walk you through setting up automated, encrypted backups using rclone with the crypt backend and an S3-compatible storage like Tebi, Wasabi, or MinIO. Run: rclone&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                <h2 id="overview">Overview</h2>
+<p>Backing up critical data is essential, but encrypting that backup adds a much-needed layer of security. This guide will walk you through setting up automated, encrypted backups using <code>rclone</code> with the <code>crypt</code> backend and an S3-compatible storage like <strong>Tebi</strong>, <strong>Wasabi</strong>, or <strong>MinIO</strong>.</p><hr>
+<h2 id="✅-prerequisites">✅ Prerequisites</h2>
+<ul>
+<li><code>rclone</code> installed (<code>sudo apt install rclone</code>)</li>
+<li>Access to an S3-compatible storage service (e.g., Tebi)</li>
+<li>Linux user with permission to run backups</li>
+<li>A list of directories to back up (<code>/etc</code>, <code>/home</code>, <code>/var/www</code>, etc.)</li>
+</ul>
+<hr>
+<h2 id="🔧-step-1-configure-the-s3-remote">🔧 Step 1: Configure the S3 Remote</h2>
+<ol>
+<li><p>Run:</p><pre><code class="language-bash">rclone config
+</code></pre>
+</li>
+<li><p>Select <code>n</code> to create a <strong>new remote</strong>.</p></li>
+<li><p>Name: <code>tebi-backup</code> (or any name you like)</p></li>
+<li><p>Select storage type: <code>s3</code></p></li>
+<li><p>Configure as follows:</p><ul>
+<li><strong>Provider</strong>: <code>Other</code></li>
+<li><strong>Access Key ID / Secret Access Key</strong>: As provided by your S3 host</li>
+<li><strong>Endpoint</strong>: <code>https://s3.tebi.io</code></li>
+<li><strong>Region / Location constraint</strong>: Leave blank or default</li>
+<li><strong>ACL</strong>: <code>private</code></li>
+</ul>
+</li>
+</ol>
+<hr>
+<h2 id="🔐-step-2-create-the-encrypted-remote-crypt-layer">🔐 Step 2: Create the Encrypted Remote (Crypt Layer)</h2>
+<ol>
+<li><p>In the same <code>rclone config</code>, create a <strong>new remote</strong> (name it e.g., <code>tebi-crypt</code>)</p></li>
+<li><p>Storage type: <code>crypt</code></p></li>
+<li><p>When prompted for the remote, enter:</p><pre><code>tebi-backup:crypted-storage-01
+</code></pre>
+<p>Replace <code>crypted-storage-01</code> with your encrypted bucket name.</p></li>
+<li><p>Choose encryption mode:</p><ul>
+<li><strong>Filename encryption</strong>: <code>standard</code></li>
+<li><strong>Directory name encryption</strong>: <code>true</code></li>
+<li>Set a <strong>strong password</strong></li>
+<li>Leave salt password blank or enter a second one for added security</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h2 id="📂-step-3-backup-script">📂 Step 3: Backup Script</h2>
+<p>Here’s an example bash script for encrypted backups:</p><pre><code class="language-bash">#!/bin/bash
+
+# Variables
+REMOTE=&quot;tebi-crypt:backups&quot;
+LOG_FILE=&quot;/var/log/rclone-encrypted-backup.log&quot;
+TIMESTAMP=$(date &quot;+%Y-%m-%d_%H-%M&quot;)
+
+# Create log directory if it doesn&#39;t exist
+mkdir -p &quot;$(dirname &quot;$LOG_FILE&quot;)&quot;
+
+# Back up directories
+rclone -P sync /home &quot;$REMOTE/home-backup&quot; &gt;&gt; &quot;$LOG_FILE&quot; 2&gt;&amp;1
+rclone -P sync /etc &quot;$REMOTE/etc-backup&quot; &gt;&gt; &quot;$LOG_FILE&quot; 2&gt;&amp;1
+rclone -P sync /var/www &quot;$REMOTE/var-www-backup&quot; &gt;&gt; &quot;$LOG_FILE&quot; 2&gt;&amp;1
+rclone -P sync /DATA &quot;$REMOTE/DATA-backup&quot; &gt;&gt; &quot;$LOG_FILE&quot; 2&gt;&amp;1
+</code></pre>
+<hr>
+<h2 id="⏰-step-4-automate-with-cron">⏰ Step 4: Automate with Cron</h2>
+<p>Edit the crontab:</p><pre><code class="language-bash">sudo crontab -e
+</code></pre>
+<p>Add:</p><pre><code>30 2 * * * /usr/local/bin/backup-encrypted.sh
+</code></pre>
+<p>Ensure the script is executable:</p><pre><code class="language-bash">chmod +x /usr/local/bin/backup-encrypted.sh
+</code></pre>
+<hr>
+<h2 id="🔍-step-5-verifying-backups">🔍 Step 5: Verifying Backups</h2>
+<p>To browse or retrieve files from the encrypted remote:</p><pre><code class="language-bash">rclone ls tebi-crypt:backups/etc-backup
+rclone copy tebi-crypt:backups/home-backup ~/restore/home --progress
+</code></pre>
+<hr>
+<h2 id="📦-optional-mount-the-encrypted-remote">📦 Optional: Mount the Encrypted Remote</h2>
+<p>To mount the encrypted bucket locally:</p><pre><code class="language-bash">rclone mount tebi-crypt:backups /mnt/encrypted-backups --daemon
+</code></pre>
+<p>Install <code>fuse3</code> if needed:</p><pre><code class="language-bash">sudo apt install fuse3
+</code></pre>
+<p>To auto-mount at boot, add to <code>rc.local</code> or systemd.</p><hr>
+<h2 id="🔐-why-use-rclone-crypt">🔐 Why Use Rclone Crypt?</h2>
+<ul>
+<li><strong>Zero-knowledge</strong>: Your cloud provider never sees your plaintext</li>
+<li><strong>Encrypt filenames + contents</strong></li>
+<li>Works with any backend (S3, Google Drive, etc.)</li>
+<li>Easy to integrate with automation</li>
+</ul>
+<hr>
+<h2 id="🧹-tips">🧹 Tips</h2>
+<ul>
+<li>Test restore periodically</li>
+<li>Rotate logs or archive monthly</li>
+<li>Store rclone config securely (<code>chmod 600 ~/.rclone.conf</code>)</li>
+<li>Backup your <code>rclone.conf</code> file!</li>
+</ul>
+
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>How to Set Up Automated Server Backups to Tebi.io with rclone</title>
+        <author>
+            <name>Ehmad</name>
+        </author>
+        <link href="https://ehmi.se/blog/how-to-set-up-automated-server-backups-to-tebiio-with-rclone/"/>
+        <id>https://ehmi.se/blog/how-to-set-up-automated-server-backups-to-tebiio-with-rclone/</id>
+
+        <updated>2025-07-18T15:10:20+05:00</updated>
+            <summary>
+                <![CDATA[
+                    This guide explains how to configure a secure, automated backup system that uploads essential directories (like /etc, /home, /var/www, /DATA) to Tebi.io’s S3-compatible object storage, using rclone. curl https://rclone.org/install.sh | sudo bash 2. Configure rclone for Tebi.io Run: rclone config Then follow the prompts: Choose:&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                <p>This guide explains how to configure a secure, automated backup system that uploads essential directories (like <code>/etc</code>, <code>/home</code>, <code>/var/www</code>, <code>/DATA</code>) to <a href="https://tebi.io">Tebi.io’s S3-compatible object storage</a>, using <code>rclone</code>.</p><hr>
+<h2 id="🔧-requirements">🔧 Requirements</h2>
+<ul>
+<li>A Linux server (Ubuntu/Debian/CentOS tested)</li>
+<li><code>rclone</code> installed (<code>v1.62+</code> recommended)</li>
+<li>A Tebi.io bucket + S3 credentials (access key, secret key, and endpoint)</li>
+<li>Root/sudo access</li>
+</ul>
+<hr>
+<h2 id="🛠️-step-by-step-setup">🛠️ Step-by-Step Setup</h2>
+<h3 id="1-install-rclone">1. <strong>Install rclone</strong></h3>
+<pre><code class="language-bash">curl https://rclone.org/install.sh | sudo bash
+</code></pre>
+<hr>
+<h3 id="2-configure-rclone-for-tebiio">2. <strong>Configure rclone for Tebi.io</strong></h3>
+<p>Run:</p><pre><code class="language-bash">rclone config
+</code></pre>
+<p>Then follow the prompts:</p><ol>
+<li><p>Choose: <code>n</code> for new remote</p></li>
+<li><p>Name it: <code>tebi-backup</code> (or anything you like)</p></li>
+<li><p>Choose storage type: <code>s3</code></p></li>
+<li><p>Provider: <code>Other</code></p></li>
+<li><p>Enter your:</p><ul>
+<li><code>access_key_id</code></li>
+<li><code>secret_access_key</code></li>
+<li><code>endpoint</code>: <code>https://s3.tebi.io</code></li>
+</ul>
+</li>
+<li><p>Region: Leave blank</p></li>
+<li><p>Location Constraint: Leave blank</p></li>
+<li><p>ACL: Choose <code>private</code></p></li>
+</ol>
+<p>When done, run <code>rclone listremotes</code> to verify:</p><pre><code class="language-bash">tebi-backup:
+</code></pre>
+<hr>
+<h3 id="3-create-the-backup-script">3. <strong>Create the Backup Script</strong></h3>
+<p>Create a new script:</p><pre><code class="language-bash">sudo nano /usr/local/bin/tebi-backup.sh
+</code></pre>
+<p>Paste the following:</p><pre><code class="language-bash">#!/bin/bash
+
+REMOTE=&quot;tebi-backup:your-bucket-name/backups&quot;
+DATE=$(date +%F)
+DAY=$(date +%u)
+LOG_FILE=&quot;/var/log/tebi-backup.log&quot;
+
+echo &quot;========== Backup started at $(date) ==========&quot; &gt;&gt; &quot;$LOG_FILE&quot;
+
+rclone -P sync /home &quot;$REMOTE/home&quot; &gt;&gt; &quot;$LOG_FILE&quot; 2&gt;&amp;1
+rclone -P sync /var/www &quot;$REMOTE/var-www&quot; &gt;&gt; &quot;$LOG_FILE&quot; 2&gt;&amp;1
+rclone -P sync /DATA &quot;$REMOTE/DATA&quot; &gt;&gt; &quot;$LOG_FILE&quot; 2&gt;&amp;1
+rclone -P sync /etc &quot;$REMOTE/etc&quot; &gt;&gt; &quot;$LOG_FILE&quot; 2&gt;&amp;1
+
+if [ &quot;$DAY&quot; -eq 5 ]; then
+  SNAPSHOT_DIR=&quot;$REMOTE/etc-snapshots/$DATE&quot;
+  echo &quot;Weekly snapshot: /etc to $SNAPSHOT_DIR&quot; &gt;&gt; &quot;$LOG_FILE&quot;
+  rclone -P copy /etc &quot;$SNAPSHOT_DIR&quot; &gt;&gt; &quot;$LOG_FILE&quot; 2&gt;&amp;1
+
+  echo &quot;Deleting old snapshots (&gt;30d)...&quot; &gt;&gt; &quot;$LOG_FILE&quot;
+  rclone lsd &quot;$REMOTE/etc-snapshots&quot; --max-age 720h |
+  awk &#39;{print $NF}&#39; |
+  while read -r folder; do
+    rclone purge &quot;$REMOTE/etc-snapshots/$folder&quot; &gt;&gt; &quot;$LOG_FILE&quot; 2&gt;&amp;1
+  done
+fi
+
+echo &quot;========== Backup finished at $(date) ==========&quot; &gt;&gt; &quot;$LOG_FILE&quot;
+</code></pre>
+<p>Replace <code>your-bucket-name</code> with your actual bucket.</p><p>Then make the script executable:</p><pre><code class="language-bash">sudo chmod +x /usr/local/bin/tebi-backup.sh
+</code></pre>
+<hr>
+<h3 id="4-automate-with-cron">4. <strong>Automate with Cron</strong></h3>
+<p>Edit root’s crontab:</p><pre><code class="language-bash">sudo crontab -e
+</code></pre>
+<p>Add this line to run backups daily at 2:30 AM:</p><pre><code class="language-bash">30 2 * * * /usr/local/bin/tebi-backup.sh
+</code></pre>
+<hr>
+<h2 id="📂-folder-structure-on-tebi">📂 Folder Structure on Tebi</h2>
+<p>Your backups will be neatly organized like this:</p><pre><code>backups/
+├── home/
+├── var-www/
+├── DATA/
+├── etc/
+└── etc-snapshots/
+    ├── 2025-07-05/
+    ├── 2025-07-12/
+    └── ...
+</code></pre>
+<hr>
+<h2 id="🧪-test-the-backup">🧪 Test the Backup</h2>
+<p>Run manually to test:</p><pre><code class="language-bash">sudo /usr/local/bin/tebi-backup.sh
+</code></pre>
+<p>Then check:</p><pre><code class="language-bash">rclone lsf tebi-backup:your-bucket-name/backups/
+</code></pre>
+<hr>
+<h2 id="✅-best-practices">✅ Best Practices</h2>
+<ul>
+<li><strong>Restrict</strong> Tebi.io S3 credentials to a backup-only IAM role.</li>
+<li><strong>Rotate</strong> your credentials every 90 days.</li>
+<li><strong>Encrypt</strong> backups at rest (Tebi supports server-side encryption).</li>
+<li>Use <code>rclone crypt</code> if you want local encryption before upload.</li>
+</ul>
+
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>🛠️ Migrating from Nginx Proxy Manager to Traefik – Part 2</title>
+        <author>
+            <name>Ehmad</name>
+        </author>
+        <link href="https://ehmi.se/blog/migrating-from-nginx-proxy-manager-to-traefik-part-2/"/>
+        <id>https://ehmi.se/blog/migrating-from-nginx-proxy-manager-to-traefik-part-2/</id>
+
+        <updated>2025-07-01T15:16:54+05:00</updated>
+            <summary>
+                <![CDATA[
+                    🌀 Traefik Comes Online Once Traefik was set up, I configured it with the following key features in the traefik.yml: entryPoints: web: address: &quot;:80&quot; websecure: address: &quot;:443&quot; providers: docker: exposedByDefault: false file: directory: /etc/traefik/dynamic watch: true certificatesResolvers: cloudflare: acme: dnsChallenge: provider: cloudflare email: example@example.com storage:&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                <h3 id="🌀-traefik-comes-online">🌀 Traefik Comes Online</h3>
+<p>Once Traefik was set up, I configured it with the following key features in the <code>traefik.yml</code>:</p><pre><code class="language-yaml">entryPoints:
+  web:
+    address: &quot;:80&quot;
+  websecure:
+    address: &quot;:443&quot;
+
+providers:
+  docker:
+    exposedByDefault: false
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+certificatesResolvers:
+  cloudflare:
+    acme:
+      dnsChallenge:
+        provider: cloudflare
+        email: example@example.com
+        storage: /letsencrypt/acme.json
+</code></pre>
+<p>This set the stage for dynamic config files and DNS-01 validation via Cloudflare.</p><hr>
+<h3 id="🧱-dynamic-configs-for-each-app">🧱 Dynamic Configs for Each App</h3>
+<p>Instead of using Compose labels like Nginx Proxy Manager, I created <code>.yml</code> files in <code>/etc/traefik/dynamic/</code> for each service. Here are some examples:</p><h4 id="🔌-wolyml">🔌 <code>wol.yml</code></h4>
+<pre><code class="language-yaml">http:
+  routers:
+    wol:
+      rule: &quot;Host(`wol.example.site`)&quot;
+      service: wol-svc
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: cloudflare
+
+  services:
+    wol-svc:
+      loadBalancer:
+        servers:
+          - url: &quot;http://host.docker.internal:9002&quot;
+</code></pre>
+<h4 id="📡-tenda-apiyml-no-https">📡 <code>tenda-api.yml</code> (No HTTPS)</h4>
+<pre><code class="language-yaml">http:
+  routers:
+    tenda:
+      rule: &quot;Host(`api.cloud.tenda.com.cn`)&quot;
+      service: tenda-svc
+      entryPoints:
+        - web
+
+  services:
+    tenda-svc:
+      loadBalancer:
+        servers:
+          - url: &quot;http://host.docker.internal:9001&quot;
+</code></pre>
+<blockquote>
+<p>✅ Dynamic configs helped manage services independently and avoided bloating the Docker Compose.</p></blockquote>
+<hr>
+<h3 id="🔐-blocking-external-access-to-certain-ports">🔐 Blocking External Access to Certain Ports</h3>
+<p>Instead of using a firewall to block apps like Pi-hole on ports like 53/82/85, I used <strong>binding tricks</strong>:</p><h4 id="for-apache-apps">For Apache apps:</h4>
+<p>You can bind internal apps to localhost or internal IPs in Docker Compose or Apache:</p><pre><code class="language-apache">Listen 127.0.0.1:82
+</code></pre>
+<p>Or Docker Compose:</p><pre><code class="language-yaml">ports:
+  - &quot;127.0.0.1:85:85&quot;
+</code></pre>
+<p>That way, the service is inaccessible from outside but usable internally and by Traefik.</p><hr>
+<h3 id="📦-internal-dns-proxy-doh">📦 Internal DNS Proxy (DoH)</h3>
+<p>I also had a <code>dnsproxy</code> DoH service that exposed port <code>5052</code>. To hide it from public access, I updated the systemd unit:</p><pre><code class="language-ini">ExecStart=/opt/dnsproxy/dnsproxy \
+  -u https://cloudflare-gateway.com/dns-query \
+  -b 1.1.1.1:53 -l 127.0.0.1 -p 5052
+</code></pre>
+<p>Binding to <code>127.0.0.1</code> ensures it can’t be reached externally, only locally.</p><hr>
+<h3 id="📉-what-are-entrypoints-like-8080">📉 What Are EntryPoints like <code>:8080</code>?</h3>
+<p>By default, Traefik exposes a dashboard on port <code>8080</code>. I didn’t want it public, so I either:</p><ul>
+<li>Disabled the dashboard completely.</li>
+<li>Or protected it via IP whitelisting or basic auth using middleware.</li>
+</ul>
+<hr>
+<h3 id="📊-metrics-logs--tracing">📊 Metrics, Logs &amp; Tracing</h3>
+<p>Traefik supports features like:</p><ul>
+<li><strong>Access logs</strong></li>
+<li><strong>Prometheus metrics</strong></li>
+<li><strong>Jaeger tracing</strong></li>
+</ul>
+<p>To enable access logs in <code>traefik.yml</code>:</p><pre><code class="language-yaml">accessLog: {}
+</code></pre>
+<p>To enable Prometheus:</p><pre><code class="language-yaml">metrics:
+  prometheus: {}
+</code></pre>
+<p>And for tracing:</p><pre><code class="language-yaml">tracing:
+  jaeger:
+    samplingServerURL: http://jaeger:5778/sampling
+</code></pre>
+<blockquote>
+<p>These helped monitor and debug routing and cert issues in real time.</p></blockquote>
+<hr>
+<h3 id="🔍-final-notes">🔍 Final Notes</h3>
+<p>Some lessons learned:</p><ul>
+<li><strong>Don’t use <code>127.0.0.1</code> from inside containers</strong> to access host apps. Use <code>host.docker.internal</code> or a shared network.</li>
+<li><strong>ACME timeouts</strong> were mostly DNS issues or misconfigured firewalls.</li>
+<li><strong>Exposing internal-only services publicly</strong> is easily preventable with proper Docker port binding (<code>127.0.0.1:port</code>).</li>
+</ul>
+
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>Homelab Reverse Proxy Migration — Part 1</title>
+        <author>
+            <name>Ehmad</name>
+        </author>
+        <link href="https://ehmi.se/blog/homelab-reverse-proxy-migration-part-1/"/>
+        <id>https://ehmi.se/blog/homelab-reverse-proxy-migration-part-1/</id>
+
+        <updated>2025-06-15T09:15:34+05:00</updated>
+            <summary>
+                <![CDATA[
+                    From Nginx Proxy Manager to Traefik: Hardening and Streamlining Services 📦 Introduction This guide documents the process of migrating from Nginx Proxy Manager (NPM) to Traefik v2, while self-hosting several internal apps like: This migration is aimed at: Nginx Proxy Manager is a great GUI-based&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                <h2 id="from-nginx-proxy-manager-to-traefik-hardening-and-streamlining-services">From Nginx Proxy Manager to Traefik: Hardening and Streamlining Services</h2>
+<hr>
+<h2 id="📦-introduction">📦 Introduction</h2>
+<p>This guide documents the process of migrating from <strong>Nginx Proxy Manager (NPM)</strong> to <strong>Traefik v2</strong>, while self-hosting several internal apps like:</p><ul>
+<li><strong>Pi-hole</strong> (network-level DNS filtering)</li>
+<li><strong>Vaultwarden</strong> (Bitwarden-compatible password manager)</li>
+<li>Static sites served via <strong>Apache</strong></li>
+<li>Other services like WOL dashboards, API endpoints, and file managers</li>
+</ul>
+<p>This migration is aimed at:</p><ul>
+<li>Improving <strong>TLS automation</strong> with Let’s Encrypt</li>
+<li>Enabling <strong>fine-grained routing</strong></li>
+<li>Reducing open ports and <strong>tightening external access</strong></li>
+</ul>
+<hr>
+<h2 id="🔁-why-migrate-from-npm-to-traefik">🔁 Why Migrate from NPM to Traefik?</h2>
+<p>Nginx Proxy Manager is a great GUI-based solution but has limitations when:</p><ul>
+<li>Running <strong>multiple services on different ports</strong></li>
+<li>Needing <strong>automatic wildcard certificates</strong></li>
+<li>Enforcing <strong>advanced routing or middlewares</strong></li>
+<li>Wanting <strong>CLI/scriptable configuration</strong></li>
+</ul>
+<p><strong>Traefik</strong> offers:</p><ul>
+<li>Native <strong>Docker integration</strong></li>
+<li>Automatic <strong>Let’s Encrypt TLS</strong></li>
+<li>Fine control over access and routing</li>
+<li>Better <strong>performance</strong> and flexibility</li>
+</ul>
+<hr>
+<h2 id="🧱-architecture-overview">🧱 Architecture Overview</h2>
+<p>Here’s the general layout of the stack:</p><table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Purpose</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Apache2</strong></td>
+<td>Hosts legacy apps on non-standard ports</td>
+<td>e.g., 9001, 9002, 85</td>
+</tr>
+<tr>
+<td><strong>Traefik v2</strong></td>
+<td>Reverse proxy and TLS termination</td>
+<td>Replaces Nginx Proxy Manager</td>
+</tr>
+<tr>
+<td><strong>Pi-hole</strong></td>
+<td>Network-wide ad/DNS blocking</td>
+<td>Forwarded to port 53 internally</td>
+</tr>
+<tr>
+<td><strong>Vaultwarden</strong></td>
+<td>Password manager</td>
+<td>Secured via HTTPS proxying</td>
+</tr>
+<tr>
+<td><strong>Docker</strong></td>
+<td>Containerized services</td>
+<td>Shared network across services</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="🏗️-apache-config-non-standard-ports">🏗️ Apache Config (Non-Standard Ports)</h2>
+<p>You had several legacy apps hosted via Apache on specific ports like:</p><pre><code class="language-apache">&lt;VirtualHost *:9001&gt;
+  DocumentRoot /var/www/hear
+&lt;/VirtualHost&gt;
+
+&lt;VirtualHost *:9002&gt;
+  DocumentRoot /var/www/wol
+&lt;/VirtualHost&gt;
+
+&lt;VirtualHost *:85&gt;
+  ServerName file.domain.local
+  DocumentRoot /var/www/html/tinyfilemanager
+&lt;/VirtualHost&gt;
+</code></pre>
+<hr>
+<h2 id="❌-problems-with-exposed-ports">❌ Problems with Exposed Ports</h2>
+<p>Some apps were exposed on ports like <code>:85</code>, <code>:82</code>, <code>:9001</code>, etc. which could be accessed externally unless firewalled.</p><p>To secure them <strong>without using iptables or UFW</strong>, we moved to this trick:</p><pre><code class="language-apache">&lt;VirtualHost 127.0.0.1:85&gt;
+</code></pre>
+<p>Binding Apache to <strong>127.0.0.1</strong> ensures only localhost (and Traefik) can access those services. Docker containers can’t hit <code>127.0.0.1</code> of the host directly, so these are effectively isolated unless routed.</p><hr>
+<h2 id="🔐-traefik-now-handles-all-public-access">🔐 Traefik Now Handles All Public Access</h2>
+<p>Traefik is set up with:</p><pre><code class="language-yaml">entryPoints:
+  web:
+    address: &quot;:80&quot;
+  websecure:
+    address: &quot;:443&quot;
+  traefik:
+    address: &quot;:8080&quot;
+</code></pre>
+<p>Any apps exposed via Traefik now get:</p><ul>
+<li>Automatic TLS via Let’s Encrypt</li>
+<li>Pretty subdomains (e.g., <code>vault.domain.local</code>)</li>
+<li>Protected routing (optionally via middleware/auth)</li>
+</ul>
+<p>You had to stop Apache from binding to <code>:80</code>/<code>:443</code> to prevent port conflicts:</p><pre><code class="language-bash">sudo systemctl stop apache2
+</code></pre>
+<p>Now Apache only handles internal routes; Traefik handles external.</p><hr>
+<h2 id="📊-about-traefiks-port-8080">📊 About Traefik’s Port 8080</h2>
+<p>Port <code>:8080</code> is for the <strong>Traefik dashboard</strong>, useful for debugging during setup. You can restrict it later.</p><pre><code class="language-yaml">api:
+  dashboard: true
+
+entryPoints:
+  traefik:
+    address: &quot;:8080&quot;
+</code></pre>
+<p>To disable it in production, set <code>api.dashboard: false</code> and remove port 8080 from published ports in Docker.</p><hr>
+<h2 id="🚧-limitation-docker-containers-cant-access-hosts-127001">🚧 Limitation: Docker Containers Can’t Access Host’s 127.0.0.1</h2>
+<p>You noticed this error inside a container:</p><pre><code class="language-bash">wget http://127.0.0.1:85
+# → connection refused
+</code></pre>
+<p>That’s expected — <code>127.0.0.1</code> inside Docker refers to the container itself, not the host.</p><p>To let Docker containers access the host:</p><ul>
+<li>Use the host’s internal bridge IP (e.g., <code>172.17.0.1</code>)</li>
+<li>Or on Linux, use <code>extra_hosts</code> in Docker Compose to map <code>host.docker.internal</code></li>
+</ul>
+<pre><code class="language-yaml">extra_hosts:
+  - &quot;host.docker.internal:172.17.0.1&quot;
+</code></pre>
+<hr>
+<h2 id="🌐-dns--pi-hole-on-port-53">🌐 DNS &amp; Pi-hole on Port 53</h2>
+<p>To make Pi-hole handle DNS for your network:</p><h3 id="option-a-use-dockers-published-port">Option A: Use Docker’s published port</h3>
+<p>If Pi-hole is containerized:</p><pre><code class="language-yaml">ports:
+  - &quot;53:53/tcp&quot;
+  - &quot;53:53/udp&quot;
+</code></pre>
+<h3 id="option-b-forward-using-iptables-if-dns-needs-to-stay-centralized">Option B: Forward using iptables (if DNS needs to stay centralized)</h3>
+<pre><code class="language-bash">sudo iptables -t nat -A PREROUTING -p udp --dport 53 -j DNAT --to-destination &lt;PIHOLE_IP&gt;:53
+</code></pre>
+<hr>
+<h2 id="🧪-next-steps">🧪 Next Steps</h2>
+<p>You’re now at the halfway point of your migration. What’s working so far:</p><p>✅ Traefik is running and binds to ports 80/443
+✅ Apache is hidden from the outside
+✅ TLS routing via Traefik is active
+✅ Docker containers are network-isolated
+✅ Pi-hole DNS is optionally routed</p><hr>
+<h2 id="📝-coming-up-in-part-2">📝 Coming Up in Part 2</h2>
+<p>In the next section, we’ll cover:</p><ul>
+<li>📂 Dynamic Traefik configuration (for Vaultwarden, Pi-hole, WOL, etc.)</li>
+<li>🔒 Basic auth / IP filtering middlewares</li>
+<li>🧼 Access logs, metrics, tracing</li>
+<li>🧭 Organizing the Traefik dashboard</li>
+</ul>
+<p>Ready for Part 2?</p>
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>How to Use Vim: A Guide for Dummies</title>
+        <author>
+            <name>Ehmad</name>
+        </author>
+        <link href="https://ehmi.se/blog/how-to-use-vim-a-guide-for-dummies/"/>
+        <id>https://ehmi.se/blog/how-to-use-vim-a-guide-for-dummies/</id>
+
+        <updated>2025-05-07T19:30:24+05:00</updated>
+            <summary>
+                <![CDATA[
+                    Hey there! If you’re new to Vim like me and feeling a bit lost, don’t worry i am too —this guide is written just for us :3. Vim is a super powerful text editor, but it’s not like the usual ones you might be used&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                <p>Hey there! If you’re new to Vim like me and feeling a bit lost, don’t worry i am too —this guide is written just for us :3. Vim is a super powerful text editor, but it’s not like the usual ones you might be used to (like Notepad or Word). It’s got a bit of a learning curve, but once you get the hang of it, you’ll feel like a text-editing wizard. Let’s break it down step by step, and I’ll keep it simple. Plus, there’s a handy cheat sheet at the end to keep you on track!</p><h2 id="what-is-vim">What is Vim?</h2>
+<p>Vim stands for “Vi Improved.” It’s a text editor that’s been around forever and is loved by people who code or work with text a lot. Why? Because it’s fast and you don’t need a mouse—everything’s done with the keyboard. That might sound weird at first, but stick with me—it’s worth it!</p><h2 id="the-big-idea-vim-modes">The Big Idea: Vim Modes</h2>
+<p>Here’s the trickiest part about Vim: it has different “modes.” Think of them like different hats Vim wears depending on what you want to do. You’ll switch between these modes all the time, so let’s meet them:</p><ul>
+<li><strong>Normal Mode</strong>: This is where Vim starts. You use it to move around and give commands (like “delete this” or “copy that”).</li>
+<li><strong>Insert Mode</strong>: This is where you type stuff, like writing a sentence.</li>
+<li><strong>Visual Mode</strong>: This is for selecting chunks of text (like highlighting with a mouse, but cooler).</li>
+<li><strong>Command-Line Mode</strong>: This is for bigger commands, like saving your work or searching.</li>
+</ul>
+<p>Don’t panic—we’ll learn how to switch between them next!</p><h2 id="step-1-opening-and-closing-vim">Step 1: Opening and Closing Vim</h2>
+<p>Let’s get started:</p><ul>
+<li><strong>Open Vim</strong>: Open your terminal (that black box where you type commands). Type <code>vim</code> and hit Enter. Want to edit a file? Type <code>vim myfile.txt</code>.</li>
+<li><strong>Close Vim</strong>: This trips everyone up at first. Press <code>Esc</code> (to make sure you’re in Normal Mode), then type <code>:q</code> and hit Enter. If you’ve changed something and Vim won’t let you quit, type <code>:q!</code> to force it to close without saving.</li>
+</ul>
+<h2 id="step-2-switching-modes">Step 2: Switching Modes</h2>
+<p>Here’s how to move between those modes:</p><ul>
+<li><strong>Normal to Insert</strong>: Press <code>i</code>. You’ll see “– INSERT –” at the bottom. Now you can type!</li>
+<li><strong>Insert to Normal</strong>: Press <code>Esc</code>. Back to command central.</li>
+<li><strong>Normal to Visual</strong>: Press <code>v</code>. Now you can select text with arrow keys or other movement keys.</li>
+<li><strong>Normal to Command-Line</strong>: Press <code>:</code>. You’ll see a colon at the bottom where you can type commands.</li>
+</ul>
+<h2 id="step-3-moving-around-normal-mode">Step 3: Moving Around (Normal Mode)</h2>
+<p>In Normal Mode, forget your arrow keys for a sec—try these:</p><ul>
+<li><code>h</code>: Move left</li>
+<li><code>j</code>: Move down</li>
+<li><code>k</code>: Move up</li>
+<li><code>l</code>: Move right</li>
+</ul>
+<p>Want to zip around faster?</p><ul>
+<li><code>w</code>: Jump to the next word</li>
+<li><code>b</code>: Jump back to the previous word</li>
+<li><code>0</code>: Go to the start of the line</li>
+<li><code>$</code>: Go to the end of the line</li>
+</ul>
+<h2 id="step-4-typing-stuff">Step 4: Typing Stuff</h2>
+<p>To write anything:</p><ol>
+<li>Get into Normal Mode (press <code>Esc</code> if you’re not sure).</li>
+<li>Press <code>i</code> to enter Insert Mode.</li>
+<li>Type whatever you want.</li>
+<li>Press <code>Esc</code> to go back to Normal Mode.</li>
+</ol>
+<h2 id="step-5-editing-basics">Step 5: Editing Basics</h2>
+<ul>
+<li><strong>Delete a letter</strong>: In Normal Mode, put your cursor on the letter and press <code>x</code>.</li>
+<li><strong>Delete a line</strong>: Press <code>dd</code>.</li>
+<li><strong>Delete a word</strong>: Put your cursor at the start of the word and press <code>dw</code>.</li>
+</ul>
+<h2 id="step-6-copy-and-paste">Step 6: Copy and Paste</h2>
+<ul>
+<li><strong>Copy a line</strong>: In Normal Mode, press <code>yy</code>.</li>
+<li><strong>Copy a word</strong>: Cursor at the start of the word, press <code>yw</code>.</li>
+<li><strong>Paste</strong>: Press <code>p</code>. It’ll paste after your cursor.</li>
+</ul>
+<h2 id="step-7-oops-undo-and-redo">Step 7: Oops! Undo and Redo</h2>
+<ul>
+<li><strong>Undo</strong>: Press <code>u</code> in Normal Mode. Made a mistake? Fixed!</li>
+<li><strong>Redo</strong>: Press <code>Ctrl + r</code> to bring it back.</li>
+</ul>
+<h2 id="step-8-saving-and-quitting">Step 8: Saving and Quitting</h2>
+<p>To save your masterpiece:</p><ol>
+<li>Press <code>:</code> to enter Command-Line Mode.</li>
+<li>Type <code>w</code> and hit Enter (short for “write”).</li>
+<li>Want to save and quit? Type <code>:wq</code> and Enter.</li>
+<li>Changed your mind and want to ditch it? Type <code>:q!</code> and Enter.</li>
+</ol>
+<h2 id="step-9-finding-stuff">Step 9: Finding Stuff</h2>
+<p>Need to find a word?</p><ol>
+<li>In Normal Mode, press <code>/</code>.</li>
+<li>Type the word (like <code>/hello</code>) and hit Enter.</li>
+<li>Press <code>n</code> to jump to the next one, or <code>N</code> to go back.</li>
+</ol>
+<h2 id="step-10-selecting-text-visual-mode">Step 10: Selecting Text (Visual Mode)</h2>
+<ul>
+<li>Press <code>v</code> in Normal Mode to start selecting.</li>
+<li>Move around with <code>h</code>, <code>j</code>, <code>k</code>, <code>l</code> to highlight text.</li>
+<li>Then:<ul>
+<li><code>y</code> to copy it.</li>
+<li><code>d</code> to delete (cut) it.</li>
+<li><code>p</code> to paste over it.</li>
+</ul>
+</li>
+</ul>
+<h2 id="tips-to-survive-vim">Tips to Survive Vim</h2>
+<ul>
+<li>Practice a little every day—it’s like learning to ride a bike.</li>
+<li>Start small, like editing a grocery list.</li>
+<li>Keep the cheat sheet below close by!</li>
+</ul>
+<h1 id="vim-cheat-sheet">Vim Cheat Sheet</h1>
+<p>Here’s your quick guide to the basics:</p><table>
+<thead>
+<tr>
+<th>What You Want</th>
+<th>How to Do It</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Start typing</td>
+<td><code>i</code></td>
+</tr>
+<tr>
+<td>Stop typing</td>
+<td><code>Esc</code></td>
+</tr>
+<tr>
+<td>Save</td>
+<td><code>:w</code></td>
+</tr>
+<tr>
+<td>Quit</td>
+<td><code>:q</code></td>
+</tr>
+<tr>
+<td>Save and quit</td>
+<td><code>:wq</code></td>
+</tr>
+<tr>
+<td>Quit without saving</td>
+<td><code>:q!</code></td>
+</tr>
+<tr>
+<td>Undo</td>
+<td><code>u</code></td>
+</tr>
+<tr>
+<td>Redo</td>
+<td><code>Ctrl + r</code></td>
+</tr>
+<tr>
+<td>Delete a letter</td>
+<td><code>x</code></td>
+</tr>
+<tr>
+<td>Delete a line</td>
+<td><code>dd</code></td>
+</tr>
+<tr>
+<td>Delete a word</td>
+<td><code>dw</code></td>
+</tr>
+<tr>
+<td>Copy a line</td>
+<td><code>yy</code></td>
+</tr>
+<tr>
+<td>Copy a word</td>
+<td><code>yw</code></td>
+</tr>
+<tr>
+<td>Paste</td>
+<td><code>p</code></td>
+</tr>
+<tr>
+<td>Search for something</td>
+<td><code>/something</code></td>
+</tr>
+<tr>
+<td>Next search result</td>
+<td><code>n</code></td>
+</tr>
+<tr>
+<td>Previous search result</td>
+<td><code>N</code></td>
+</tr>
+<tr>
+<td>Next word</td>
+<td><code>w</code></td>
+</tr>
+<tr>
+<td>Previous word</td>
+<td><code>b</code></td>
+</tr>
+<tr>
+<td>Start of line</td>
+<td><code>0</code></td>
+</tr>
+<tr>
+<td>End of line</td>
+<td><code>$</code></td>
+</tr>
+</tbody></table>
+<p>You’ve got this! Vim might feel strange at first, but soon you’ll be zooming around your files like a pro. Happy editing!</p><h4 id="update">Update</h4>
+<p>here is a full video guide by mental outlaw showing each and every aspect of vim <a href="https://www.youtube.com/watch?v=jyhYW0qZ6oA&list=PL3cu45aM3C2DJVGfCjSBB1yD9YkC7q27-">YouTube Playlist Link</a></p>
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>GPG for Beginners: Sign, Encrypt, and Verify Like a Pro</title>
+        <author>
+            <name>Ehmad</name>
+        </author>
+        <link href="https://ehmi.se/blog/gpg-for-beginners-sign-encrypt-and-verify-like-a-pro/"/>
+        <id>https://ehmi.se/blog/gpg-for-beginners-sign-encrypt-and-verify-like-a-pro/</id>
+
+        <updated>2025-05-07T09:15:00+05:00</updated>
+            <summary>
+                <![CDATA[
+                    You’ve probably seen this in hacker movies or privacy tools: -----BEGIN PGP SIGNED MESSAGE----- That’s GPG (aka PGP). It’s real cryptography that you can use today — to sign, encrypt, and verify messages like a cybersecurity pro. Let’s jump in. Open your terminal and type:&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                <p>You’ve probably seen this in hacker movies or privacy tools:</p><pre><code>-----BEGIN PGP SIGNED MESSAGE-----
+</code></pre>
+<p>That’s GPG (aka PGP). It’s <strong>real cryptography</strong> that you can use today — to <strong>sign, encrypt, and verify</strong> messages like a cybersecurity pro.</p><p>Let’s jump in.</p><hr>
+<h2 id="🎯-step-1-generate-your-gpg-key-pair">🎯 Step 1: Generate Your GPG Key Pair</h2>
+<p>Open your terminal and type:</p><pre><code class="language-bash">gpg --full-generate-key
+</code></pre>
+<p>When prompted:</p><ul>
+<li>Select <code>RSA and RSA</code> (default)</li>
+<li>Choose 4096 bits</li>
+<li>Set an expiration (or 0 for none)</li>
+<li>Enter your <strong>name</strong> and <strong>email</strong></li>
+<li>Create a strong passphrase (you’ll need this to unlock your private key)</li>
+</ul>
+<p>Done. You now have:</p><ul>
+<li>A <strong>private key</strong> (keep this safe!)</li>
+<li>A <strong>public key</strong> (share it with the world)</li>
+</ul>
+<hr>
+<h2 id="🕵️♂️-step-2-sign-a-message-prove-you-wrote-it">🕵️‍♂️ Step 2: Sign a Message (Prove You Wrote It)</h2>
+<p>Create a simple file:</p><pre><code class="language-bash">echo &quot;This is a top-secret message&quot; &gt; message.txt
+</code></pre>
+<p>Now sign it:</p><pre><code class="language-bash">gpg --clearsign message.txt
+</code></pre>
+<p>You’ll get <code>message.txt.asc</code> — a signed version readable by anyone.</p><hr>
+<h2 id="🧪-step-3-verify-a-signed-message">🧪 Step 3: Verify a Signed Message</h2>
+<p>Let’s say someone sends you a <code>.asc</code> file. To verify it:</p><pre><code class="language-bash">gpg --verify message.txt.asc
+</code></pre>
+<p>If you have their <strong>public key</strong>, GPG will tell you if the signature is valid.</p><hr>
+<h2 id="🔐-step-4-encrypt-a-message-only-receiver-can-read-it">🔐 Step 4: Encrypt a Message (Only Receiver Can Read It)</h2>
+<p>You want to send someone a private file.</p><p>First, import their public key:</p><pre><code class="language-bash">gpg --import their-public-key.asc
+</code></pre>
+<p>Then encrypt:</p><pre><code class="language-bash">gpg --encrypt --recipient their@email.com secret.txt
+</code></pre>
+<p>It outputs <code>secret.txt.gpg</code>, only readable by the recipient’s private key.</p><hr>
+<h2 id="🔓-step-5-decrypt-a-message-sent-to-you">🔓 Step 5: Decrypt a Message (Sent to You)</h2>
+<p>If someone sent you an encrypted file:</p><pre><code class="language-bash">gpg --decrypt secret.txt.gpg
+</code></pre>
+<p>You’ll be prompted for your passphrase. Then boom — message decrypted.</p><hr>
+<h2 id="🌍-step-6-share-your-public-key">🌍 Step 6: Share Your Public Key</h2>
+<p>Want others to verify your signatures or send you encrypted messages?</p><p>Export your key:</p><pre><code class="language-bash">gpg --armor --export your@email.com &gt; mykey.asc
+</code></pre>
+<p>Now send that file, or upload it to a public keyserver:</p><pre><code class="language-bash">gpg --keyserver hkps://keys.openpgp.org --send-keys YOUR_KEY_ID
+</code></pre>
+<p>To get your key ID:</p><pre><code class="language-bash">gpg --list-keys
+</code></pre>
+<hr>
+<h2 id="🧠-real-world-example-signing-a-statement">🧠 Real-World Example: Signing a Statement</h2>
+<p>Let’s say you publish this:</p><pre><code>I stand by this message 100%.
+</code></pre>
+<p>You sign it with GPG. Anyone can now <strong>verify</strong> that it really came from you and hasn’t been altered.</p><p>This is <strong>trust without needing a website or platform</strong>. Pure cryptography.</p><hr>
+<h2 id="🧼-clean-up-see-and-manage-your-keys">🧼 Clean Up: See and Manage Your Keys</h2>
+<p>List your keys:</p><pre><code class="language-bash">gpg --list-keys
+</code></pre>
+<p>Delete a key (be careful!):</p><pre><code class="language-bash">gpg --delete-secret-and-public-key your@email.com
+</code></pre>
+<hr>
+<h2 id="💡-final-thoughts">💡 Final Thoughts</h2>
+<p>Using GPG isn’t about looking cool — it’s about <strong>owning your identity</strong> in a world of phishing and fake messages.</p><ul>
+<li>✅ Signing proves “I wrote this.”</li>
+<li>✅ Encrypting ensures “Only you can read this.”</li>
+<li>✅ Verifying protects you from lies.</li>
+</ul>
+<p>Get comfortable with these basics, and you’ll be ready for secure comms like a professional.</p>
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>Fixing SSH Login Errors Due to Improper Home Directory Permissions</title>
+        <author>
+            <name>Ehmad</name>
+        </author>
+        <link href="https://ehmi.se/blog/fixing-ssh-login-errors-due-to-improper-home-directory-permissions/"/>
+        <id>https://ehmi.se/blog/fixing-ssh-login-errors-due-to-improper-home-directory-permissions/</id>
+
+        <updated>2025-05-07T09:13:06+05:00</updated>
+            <summary>
+                <![CDATA[
+                    When configuring SSH access for a user on a Linux system, one common issue that can block login attempts is improper file or directory permissions. A real-world example of this involves the error: Authentication refused: bad ownership or modes for directory /home/username This error typically&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                <p>When configuring SSH access for a user on a Linux system, one common issue that can block login attempts is improper file or directory permissions. A real-world example of this involves the error:</p><pre><code>Authentication refused: bad ownership or modes for directory /home/username
+</code></pre>
+<p>This error typically occurs when the SSH daemon (<code>sshd</code>) detects that the user’s home directory permissions are too permissive, which is considered a security risk. In this case, the SSH server rejects the login attempt even if the credentials or SSH keys are correct.</p><h3 id="understanding-the-problem">Understanding the Problem</h3>
+<p>The SSH daemon is configured to reject connections if the user’s home directory or <code>.ssh</code> directory is writable by group or others. This protects against unauthorized access or tampering of sensitive files such as <code>authorized_keys</code>.</p><p>In the case encountered, the user’s home directory had overly permissive ownership and permissions on files such as:</p><ul>
+<li>Files owned by <code>root</code> instead of the user.</li>
+<li>Files with <code>777</code> or <code>766</code> permissions, making them writable by group and others.</li>
+<li>A <code>.ssh</code> directory or <code>authorized_keys</code> file with insecure permissions.</li>
+</ul>
+<h3 id="solution">Solution</h3>
+<p>To resolve the issue, the following steps were taken:</p><ol>
+<li><p><strong>Corrected ownership</strong> of the user’s home directory and its contents:</p><pre><code class="language-bash">sudo chown -R username:username /home/username
+</code></pre>
+</li>
+<li><p><strong>Set the proper permissions</strong> for the home and <code>.ssh</code> directories:</p><pre><code class="language-bash">chmod 700 /home/username
+chmod 700 /home/username/.ssh
+chmod 600 /home/username/.ssh/authorized_keys
+</code></pre>
+</li>
+<li><p><strong>Restarted the SSH service</strong> to apply the changes:</p><pre><code class="language-bash">sudo systemctl restart ssh
+</code></pre>
+</li>
+</ol>
+<p>Once these corrections were made, SSH logins via key-based authentication succeeded without further issues.</p><h3 id="best-practices">Best Practices</h3>
+<ul>
+<li>Always ensure <code>.ssh</code> directories and <code>authorized_keys</code> files are owned by the user and not writable by others.</li>
+<li>Avoid placing files with <code>root</code> ownership or world-writeable permissions inside the user’s home directory when SSH access is needed.</li>
+<li>Use <code>journalctl -u ssh</code> or review <code>/var/log/auth.log</code> for specific error messages when troubleshooting SSH issues.</li>
+</ul>
+<p>By securing directory permissions appropriately, SSH can operate safely and efficiently, helping maintain the integrity of remote access setups.</p>
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>How to Enable Remote Shutdown on Windows 10/11 (Step-by-Step!)</title>
+        <author>
+            <name>Ehmad</name>
+        </author>
+        <link href="https://ehmi.se/blog/how-to-enable-remote-shutdown-on-windows-1011-step-by-step/"/>
+        <id>https://ehmi.se/blog/how-to-enable-remote-shutdown-on-windows-1011-step-by-step/</id>
+
+        <updated>2025-04-29T08:28:56+05:00</updated>
+            <summary>
+                <![CDATA[
+                    Hey everyone! Today, I’m going to show you exactly how to enable remote shutdown on a Windows machine — and we’ll do it the right way, step-by-step. I’ll make it simple, and practical, so you can test this in your own home lab. Let’s dive&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                <p>Hey everyone!</p><p>Today, I’m going to <strong>show you exactly</strong> how to <strong>enable remote shutdown</strong> on a Windows machine — and we’ll do it the <strong>right way</strong>, step-by-step.</p><p>I’ll make it simple, and practical, so you can <strong>test this in your own home lab</strong>.</p><p>Let’s dive right in! 🚀</p><hr>
+<h2 id="💻-why-remote-shutdown">💻 Why Remote Shutdown?</h2>
+<p>Imagine you have a <strong>Linux</strong> machine and a <strong>Windows PC</strong> on the same network.<br>You want to shut down Windows remotely — <strong>maybe for automation</strong>, <strong>maybe for saving power</strong> — whatever your reason, it’s a very useful tool for labs and real environments!</p><hr>
+<h2 id="🚨-windows-doesnt-allow-remote-shutdown-by-default">🚨 Windows doesn’t allow remote shutdown by default!</h2>
+<p>Windows, especially <strong>Windows 10/11 Pro</strong>, is <strong>secure by default</strong>.<br>You have to <strong>enable a few features</strong> manually before it accepts remote shutdown commands.</p><hr>
+<h2 id="🛠️-heres-the-full-setup">🛠️ Here’s the Full Setup</h2>
+<h3 id="step-1-make-sure-you-have-a-local-admin-account">Step 1: Make sure you have a <strong>Local Admin Account</strong></h3>
+<p>✅ If you’re using a <strong>Microsoft Online Account</strong> (your email login),<br>Windows gets <em>really strict</em> about permissions.</p><p><strong>Best Practice</strong>:</p><ul>
+<li>Create a <strong>local admin account</strong> just for remote tasks.</li>
+<li><strong>OR</strong> ensure your Microsoft account has Admin privileges.</li>
+</ul>
+<hr>
+<h3 id="step-2-enable-necessary-windows-services">Step 2: Enable Necessary Windows Services</h3>
+<p>✅ Open <strong>services.msc</strong> (<code>Win + R</code>, type <code>services.msc</code>, Enter).</p><p>✅ Make sure these services are <strong>running</strong>:</p><ul>
+<li><strong>Server</strong> (LanmanServer)</li>
+<li><strong>Workstation</strong> (LanmanWorkstation)</li>
+<li><strong>Remote Registry</strong> (RemoteRegistry)</li>
+</ul>
+<figure class="post__image"><img loading="lazy" src="https://ehmi.se/blog/media/posts/38/Screenshot-2025-04-29-082211.png" alt="Remote Registry" width="389" height="268" sizes="(max-width: 1920px) 100vw, 1920px" srcset="https://ehmi.se/blog/media/posts/38/responsive/Screenshot-2025-04-29-082211-xs.webp 640w ,https://ehmi.se/blog/media/posts/38/responsive/Screenshot-2025-04-29-082211-sm.webp 768w ,https://ehmi.se/blog/media/posts/38/responsive/Screenshot-2025-04-29-082211-md.webp 1024w ,https://ehmi.se/blog/media/posts/38/responsive/Screenshot-2025-04-29-082211-lg.webp 1366w ,https://ehmi.se/blog/media/posts/38/responsive/Screenshot-2025-04-29-082211-xl.webp 1600w ,https://ehmi.se/blog/media/posts/38/responsive/Screenshot-2025-04-29-082211-2xl.webp 1920w"></figure><p>👉 <strong>If any of these are stopped</strong>, right-click → <strong>Start</strong> them.</p><p>👉 Set <strong>Startup Type = Automatic</strong> for all.</p><hr>
+<h3 id="step-3-fix-user-rights-assignment-if-broken">Step 3: Fix User Rights Assignment (If Broken)</h3>
+<p>Sometimes you’ll see errors like:</p><p>✅ In that case, reset your security policies safely:</p><p>Open <strong>Command Prompt as Administrator</strong> and run:</p><pre><code class="language-bash">secedit /configure /cfg %windir%\inf\defltbase.inf /db defltbase.sdb /verbose
+</code></pre>
+<p>✅ <strong>Reboot</strong> your machine after running that.</p><hr>
+<h3 id="step-4-set-shutdown-permissions">Step 4: Set Shutdown Permissions</h3>
+<p>Now, let’s allow remote shutdowns <strong>explicitly</strong>.</p><p>✅ Open <strong>secpol.msc</strong> (<code>Win + R</code>, type <code>secpol.msc</code>, Enter).</p><p>Go to:</p><ul>
+<li><strong>Local Policies → User Rights Assignment</strong>.</li>
+</ul>
+<p>Edit these two policies:</p><ul>
+<li><p><strong>Shut down the system</strong> → Add your user (or group like Administrators).
+<figure class="post__image"><img loading="lazy" src="https://ehmi.se/blog/media/posts/38/Screenshot-2025-04-29-082507.png" alt="Shut down the system" width="321" height="21" sizes="(max-width: 1920px) 100vw, 1920px" srcset="https://ehmi.se/blog/media/posts/38/responsive/Screenshot-2025-04-29-082507-xs.webp 640w ,https://ehmi.se/blog/media/posts/38/responsive/Screenshot-2025-04-29-082507-sm.webp 768w ,https://ehmi.se/blog/media/posts/38/responsive/Screenshot-2025-04-29-082507-md.webp 1024w ,https://ehmi.se/blog/media/posts/38/responsive/Screenshot-2025-04-29-082507-lg.webp 1366w ,https://ehmi.se/blog/media/posts/38/responsive/Screenshot-2025-04-29-082507-xl.webp 1600w ,https://ehmi.se/blog/media/posts/38/responsive/Screenshot-2025-04-29-082507-2xl.webp 1920w"></figure></p></li>
+<li><p><strong>Force shutdown from a remote system</strong> → Add your user.
+<figure class="post__image"><img loading="lazy" src="https://ehmi.se/blog/media/posts/38/Screenshot-2025-04-29-082441-2.png" alt="Force shutdown from a remote system" width="363" height="34" sizes="(max-width: 1920px) 100vw, 1920px" srcset="https://ehmi.se/blog/media/posts/38/responsive/Screenshot-2025-04-29-082441-2-xs.webp 640w ,https://ehmi.se/blog/media/posts/38/responsive/Screenshot-2025-04-29-082441-2-sm.webp 768w ,https://ehmi.se/blog/media/posts/38/responsive/Screenshot-2025-04-29-082441-2-md.webp 1024w ,https://ehmi.se/blog/media/posts/38/responsive/Screenshot-2025-04-29-082441-2-lg.webp 1366w ,https://ehmi.se/blog/media/posts/38/responsive/Screenshot-2025-04-29-082441-2-xl.webp 1600w ,https://ehmi.se/blog/media/posts/38/responsive/Screenshot-2025-04-29-082441-2-2xl.webp 1920w"></figure></p></li>
+</ul>
+<p>✅ Click <strong>Apply</strong> after each.</p><hr>
+<h3 id="step-5-check-firewall-settings">Step 5: Check Firewall Settings</h3>
+<p>Windows Firewall <strong>blocks remote shutdown</strong> by default.</p><p>✅ Open <strong>Windows Defender Firewall → Advanced Settings</strong>.</p><ul>
+<li>Click <strong>Inbound Rules</strong> → Find <strong>Windows Management Instrumentation (WMI-In)</strong>.</li>
+<li><strong>Enable</strong> it.</li>
+</ul>
+<p>✅ If you can’t find it, you can also <strong>create a custom inbound rule</strong> to allow ports <strong>135, 445, 139</strong> (SMB/RPC ports).</p><hr>
+<h2 id="🔥-final-test-from-linux">🔥 Final Test from Linux</h2>
+<p>From your <strong>Linux machine</strong>, you can now send a shutdown command:</p><pre><code class="language-bash">net rpc shutdown -I &lt;Windows-IP&gt; -U &quot;&lt;username&gt;%&lt;password&gt;&quot;
+</code></pre>
+<p>Example:</p><pre><code class="language-bash">net rpc shutdown -I 10.1.1.5 -U &quot;labadmin%SuperSecretPassword&quot;
+</code></pre>
+<p>✅ If you set everything up correctly, Windows will <strong>start shutting down</strong> remotely!</p><hr>
+<h1 id="💥-troubleshooting">💥 Troubleshooting</h1>
+<table>
+<thead>
+<tr>
+<th align="left">Problem</th>
+<th align="left">Solution</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">WERR_CALL_NOT_IMPLEMENTED</td>
+<td align="left">Services not running (check Server/Workstation).</td>
+</tr>
+<tr>
+<td align="left">An attempt was made to reference a token</td>
+<td align="left">Run <code>secedit /configure</code>, reboot.</td>
+</tr>
+<tr>
+<td align="left">Permission denied</td>
+<td align="left">Make sure your user is added to the shutdown rights policies.</td>
+</tr>
+<tr>
+<td align="left">Firewall blocks request</td>
+<td align="left">Allow WMI and RPC ports in Windows Firewall.</td>
+</tr>
+</tbody></table>
+<hr>
+<h1 id="🎯-conclusion">🎯 Conclusion</h1>
+<p>There you go! Now you can <strong>remotely shut down</strong> your Windows machine like a pro.<br>This is <strong>great for labs</strong>, <strong>automated environments</strong>, or even <strong>home networks</strong> where you want full control.</p><p>🔵 <strong>Remember</strong>: Always use this carefully — shutting down someone else’s PC without permission is illegal.<br>In labs = fine. In real life = be responsible.</p>
+            ]]>
+        </content>
+    </entry>
+</feed>
