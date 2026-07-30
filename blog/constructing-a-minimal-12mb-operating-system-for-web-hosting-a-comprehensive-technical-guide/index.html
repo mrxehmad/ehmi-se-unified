@@ -1,0 +1,915 @@
+<!DOCTYPE html><html lang="en-gb"><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Constructing a Minimal 12MB Operating System for Web Hosting: A Comprehensive Technical Guide - Ehmi</title><meta name="description" content="construct a minimal 12MB Linux operating system for web hosting. Comprehensive guide covering kernel compilation, Busybox configuration, bootloader installation"><meta name="generator" content="Publii Open-Source CMS for Static Site"><meta name="theme-color" content="#17181E" media="(prefers-color-scheme: dark)"><meta name="theme-color" content="#3AB8D7" media="(prefers-color-scheme: light)"><meta name="msapplication-navbutton-color" content="#3AB8D7"><meta name="apple-mobile-web-app-status-bar-style" content="#3AB8D7"><link rel="canonical" href="https://ehmi.se/blog/constructing-a-minimal-12mb-operating-system-for-web-hosting-a-comprehensive-technical-guide/"><link rel="alternate" type="application/atom+xml" href="https://ehmi.se/blog/feed.xml" title="Ehmi - RSS"><link rel="alternate" type="application/json" href="https://ehmi.se/blog/feed.json" title="Ehmi - JSON"><meta property="og:title" content="Constructing a Minimal 12MB Operating System for Web Hosting: A Comprehensive Technical Guide"><meta property="og:image" content="https://ehmi.se/blog/media/posts/48/Screenshot-2025-11-29-135641.png"><meta property="og:image:width" content="1158"><meta property="og:image:height" content="682"><meta property="og:site_name" content="Ehmi"><meta property="og:description" content="construct a minimal 12MB Linux operating system for web hosting. Comprehensive guide covering kernel compilation, Busybox configuration, bootloader installation"><meta property="og:url" content="https://ehmi.se/blog/constructing-a-minimal-12mb-operating-system-for-web-hosting-a-comprehensive-technical-guide/"><meta property="og:type" content="article"><meta name="twitter:card" content="summary"><meta name="twitter:site" content="@Ehmi0k"><meta name="twitter:title" content="Constructing a Minimal 12MB Operating System for Web Hosting: A Comprehensive Technical Guide"><meta name="twitter:description" content="construct a minimal 12MB Linux operating system for web hosting. Comprehensive guide covering kernel compilation, Busybox configuration, bootloader installation"><meta name="twitter:image" content="https://ehmi.se/blog/media/posts/48/Screenshot-2025-11-29-135641.png"><link rel="shortcut icon" href="https://ehmi.se/blog/media/website/favicon.png" type="image/png"><link rel="stylesheet" href="https://ehmi.se/blog/assets/css/style.css?v=d385bc0ff3a04c1b92f998df1d9dfc3f"><script type="application/ld+json">{"@context":"http://schema.org","@type":"Article","mainEntityOfPage":{"@type":"WebPage","@id":"https://ehmi.se/blog/constructing-a-minimal-12mb-operating-system-for-web-hosting-a-comprehensive-technical-guide/"},"headline":"Constructing a Minimal 12MB Operating System for Web Hosting: A Comprehensive Technical Guide","datePublished":"2025-11-29T13:58+05:00","dateModified":"2026-07-30T15:07+05:00","image":{"@type":"ImageObject","url":"https://ehmi.se/blog/media/posts/48/Screenshot-2025-11-29-135641.png","height":682,"width":1158},"description":"construct a minimal 12MB Linux operating system for web hosting. Comprehensive guide covering kernel compilation, Busybox configuration, bootloader installation","author":{"@type":"Person","name":"Ehmad","url":"https://ehmi.se/blog/authors/ehmad/"},"publisher":{"@type":"Organization","name":"Ehmad","logo":{"@type":"ImageObject","url":"https://ehmi.se/blog/media/website/ehmi.png","height":100,"width":150}}}</script><noscript><style>img[loading] {
+                    opacity: 1;
+                }</style></noscript><script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6116904596263046" crossorigin="anonymous"></script></head><body class="post-template"><header class="top js-header"><a class="logo" href="https://ehmi.se/blog/"><img src="https://ehmi.se/blog/media/website/ehmi.png" alt="Ehmi" width="150" height="100"></a><nav class="navbar js-navbar"><button class="navbar__toggle js-toggle" aria-label="Menu" aria-haspopup="true" aria-expanded="false"><span class="navbar__toggle-box"><span class="navbar__toggle-inner">Menu</span></span></button><ul class="navbar__menu"><li><a href="https://ehmi.se/blog/about-ehmi/" target="_self">About me</a></li><li><a href="https://ehmi.se/blog/contact-us/" target="_self">Contact</a></li></ul></nav><div class="search"><div class="search__overlay js-search-overlay"><div class="wrapper search__overlay-inner"></div></div><button class="search__btn btn--icon js-search-btn" aria-label="Search"><svg height="18" width="18" role="presentation" focusable="false"><use xlink:href="https://ehmi.se/blog/assets/svg/svg-map.svg#search"/></svg></button></div></header><main class="post"><article class="content"><div class="hero"><header class="hero__content"><div class="wrapper"><h1>Constructing a Minimal 12MB Operating System for Web Hosting: A Comprehensive Technical Guide</h1><div class="feed__meta content__meta"><a href="https://ehmi.se/blog/authors/ehmad/" class="feed__author">Ehmad</a> <time datetime="2025-11-29T13:58" class="feed__date">November 29, 2025 </time><span class="reading-time" aria-label="8 min read">8 min read</span></div></div></header><figure class="hero__image"><div class="hero__image-wrapper"><img src="https://ehmi.se/blog/media/posts/48/Screenshot-2025-11-29-135641.png" srcset="https://ehmi.se/blog/media/posts/48/responsive/Screenshot-2025-11-29-135641-xs.webp 640w, https://ehmi.se/blog/media/posts/48/responsive/Screenshot-2025-11-29-135641-sm.webp 768w, https://ehmi.se/blog/media/posts/48/responsive/Screenshot-2025-11-29-135641-md.webp 1024w, https://ehmi.se/blog/media/posts/48/responsive/Screenshot-2025-11-29-135641-lg.webp 1366w, https://ehmi.se/blog/media/posts/48/responsive/Screenshot-2025-11-29-135641-xl.webp 1600w, https://ehmi.se/blog/media/posts/48/responsive/Screenshot-2025-11-29-135641-2xl.webp 1920w" sizes="88vw" loading="eager" height="682" width="1158" alt=" Linux kernel"></div><figcaption>Linux kernel Linux kernel @Kernel.org</figcaption></figure></div><div class="entry-wrapper content__entry"><p>This article presents a methodical approach to engineering a lightweight operating system, constrained to approximately 12 megabytes, specifically designed for Internet connectivity and web server deployment. This endeavour demonstrates the viability of creating functional networked systems without the bloat associated with contemporary operating systems, whilst maintaining sufficient capability to serve web content reliably.</p><hr><h2 id="1-introduction-and-rationale">1. Introduction and Rationale</h2><h3 id="the-contemporary-problem">The Contemporary Problem</h3><p>Modern operating systems, Linux distributions, Windows, macOS, typically consume several gigabytes of storage. For embedded systems, IoT devices, or legacy hardware with severely limited resources, this represents an unrealistic proposition. The question thus arises: what constitutes the absolute minimum viable system capable of connecting to the Internet and hosting a functional web server?</p><h3 id="our-objective">Our Objective</h3><p>We shall construct an operating system that fulfils the following requirements:</p><ul><li><strong>Total footprint:</strong> approximately 12 megabytes</li><li><strong>Core functionality:</strong> networking capabilities and HTTP server functionality</li><li><strong>Deployment:</strong> bootable via QEMU or physical hardware</li><li><strong>Architecture:</strong> x86-64 compatible for broad hardware support</li></ul><p>This represents a reduction of approximately 99.9% compared to typical Linux distributions.</p><hr><h2 id="2-architectural-overview">2. Architectural Overview</h2><h3 id="component-breakdown">Component Breakdown</h3><p>A functional operating system comprises four essential components:</p><table><thead><tr><th>Component</th><th>Size</th><th>Purpose</th></tr></thead><tbody><tr><td>Bootloader</td><td>~0.5 MB</td><td>Initial system initialisation and kernel loading</td></tr><tr><td>Linux Kernel</td><td>4–6 MB</td><td>Core system, networking, and device management</td></tr><tr><td>Busybox</td><td>1–2 MB</td><td>Essential command-line utilities and init system</td></tr><tr><td>Root Filesystem</td><td>&lt;1 MB</td><td>Configuration files, web content, system directories</td></tr></tbody></table><p><strong>Total: approximately 12 MB</strong></p><h3 id="design-philosophy">Design Philosophy</h3><p>The approach adheres to the Unix principle of doing one thing exceedingly well. Rather than attempting to build an operating system from scratch, a Herculean undertaking, we leverage established, well-tested components and strip them to their essentials.</p><hr><h2 id="3-preparation-and-environment-setup">3. Preparation and Environment Setup</h2><h3 id="prerequisites">Prerequisites</h3><p>Before commencing, ensure your development system possesses:</p><ul><li>A Linux-based development environment (Ubuntu, Debian, or similar)</li><li>Approximately 2–3 gigabytes of free disk space for compilation artefacts</li><li>Essential build tools: <code>gcc</code>, <code>make</code>, <code>git</code>, <code>wget</code></li><li>Moderate technical proficiency with command-line interfaces</li></ul><h3 id="establishing-the-build-environment">Establishing the Build Environment</h3><pre><code class="language-bash"># Install requisite dependencies
+sudo apt-get update
+sudo apt-get install build-essential wget git bc ncurses-dev \
+  flex bison openssl libssl-dev libelf-dev libdw-dev \
+  binutils-dev nasm mtools qemu-system-x86
+
+# Establish project directory structure
+mkdir -p ~/minimal-os/{kernel,busybox,syslinux,rootfs/{boot,www,etc,proc,sys,dev}}
+cd ~/minimal-os
+</code></pre><p>This foundational step ensures all necessary tools are available for subsequent compilation tasks.</p><hr><h2 id="4-linux-kernel-compilation">4. Linux Kernel Compilation</h2><h3 id="kernel-selection-and-download">Kernel Selection and Download</h3><p>The Linux kernel, the heart of any Linux-based operating system, must be compiled with minimal configuration to reduce its footprint.</p><pre><code class="language-bash">cd ~/minimal-os/kernel
+wget https://www.kernel.org/pub/linux/kernel/v6.x/linux-6.1.158.tar.xz
+tar xf linux-6.1.158.tar.xz
+cd linux-6.1.158
+</code></pre><figure class="post__image"><img loading="lazy" src="https://ehmi.se/blog/media/posts/48/Screenshot-2025-11-29-135641-2.png" alt="Linux-Kernel" width="1158" height="682" sizes="(max-width: 1920px) 100vw, 1920px" srcset="https://ehmi.se/blog/media/posts/48/responsive/Screenshot-2025-11-29-135641-2-xs.webp 640w, https://ehmi.se/blog/media/posts/48/responsive/Screenshot-2025-11-29-135641-2-sm.webp 768w, https://ehmi.se/blog/media/posts/48/responsive/Screenshot-2025-11-29-135641-2-md.webp 1024w, https://ehmi.se/blog/media/posts/48/responsive/Screenshot-2025-11-29-135641-2-lg.webp 1366w, https://ehmi.se/blog/media/posts/48/responsive/Screenshot-2025-11-29-135641-2-xl.webp 1600w, https://ehmi.se/blog/media/posts/48/responsive/Screenshot-2025-11-29-135641-2-2xl.webp 1920w"></figure><h3 id="kernel-configuration-strategy">Kernel Configuration Strategy</h3><p>Rather than including drivers for every conceivable device, we shall configure the kernel exclusively for:</p><ul><li>Networking capabilities (essential for Internet connectivity)</li><li>Virtual block devices (e.g., SATA, virtio for QEMU compatibility)</li><li>ext4 filesystem support</li><li>Serial console output (invaluable for debugging)</li></ul><pre><code class="language-bash"># Generate minimal configuration
+cat &gt; .config &lt;&lt; &#39;EOF&#39;
+CONFIG_64BIT=y
+CONFIG_X86=y
+CONFIG_KERNEL_GZIP=y
+CONFIG_SERIAL_8250=y
+CONFIG_SERIAL_8250_CONSOLE=y
+CONFIG_NET=y
+CONFIG_INET=y
+CONFIG_NETDEVICES=y
+CONFIG_NET_CORE=y
+CONFIG_E1000=y
+CONFIG_VIRTIO_NET=y
+CONFIG_EXT4_FS=y
+CONFIG_SYSVIPC=n
+CONFIG_SYSFS=y
+CONFIG_PROC_FS=y
+CONFIG_DEVTMPFS=y
+CONFIG_DEVTMPFS_MOUNT=y
+CONFIG_UNIX=y
+CONFIG_MODULES=n
+CONFIG_DEBUG_KERNEL=n
+CONFIG_STRIP_ASM_SYMS=y
+EOF
+
+# Populate remaining configuration with sensible defaults
+make olddefconfig
+
+# Initiate compilation
+make -j$(nproc)
+
+# Verify kernel size
+ls -lh arch/x86/boot/bzImage
+</code></pre><p><strong>Expected outcome:</strong> A kernel binary of 4–6 MB.</p><h3 id="compilation-considerations">Compilation Considerations</h3><p>The <code>-j$(nproc)</code> flag parallelises compilation across available CPU cores, significantly reducing compilation time. On modern hardware, anticipate 10–30 minutes of compilation time.</p><p><strong>Advisory note:</strong> Should compilation failures occur, ensure all prerequisite libraries are installed. The <code>libelf-dev</code> and <code>libdw-dev</code> packages are frequently overlooked yet essential.</p><hr><h2 id="5-busybox-the-swiss-army-knife">5. Busybox: The Swiss Army Knife</h2><h3 id="understanding-busybox">Understanding Busybox</h3><p>Busybox consolidates numerous Unix utilities into a single, statically-linked binary. Rather than maintaining separate executables for <code>ls</code>, <code>cat</code>, <code>cp</code>, et cetera, Busybox provides all functionality within approximately 1–2 megabytes.</p><h3 id="busybox-configuration">Busybox Configuration</h3><pre><code class="language-bash">cd ~/minimal-os/busybox
+wget https://busybox.net/downloads/busybox-1.36.1.tar.bz2
+tar xf busybox-1.36.1.tar.bz2
+cd busybox-1.36.1
+
+# Apply minimal configuration
+cat &gt; .config &lt;&lt; &#39;EOF&#39;
+CONFIG_SH_ASH=y
+CONFIG_INIT=y
+CONFIG_MOUNT=y
+CONFIG_UMOUNT=y
+CONFIG_HOSTNAME=y
+CONFIG_IFCONFIG=y
+CONFIG_PING=y
+CONFIG_ROUTE=y
+CONFIG_DHCPC=y
+CONFIG_WGET=y
+CONFIG_HTTPD=y
+CONFIG_HTTPD_PORT=80
+CONFIG_LS=y
+CONFIG_CP=y
+CONFIG_MV=y
+CONFIG_RM=y
+CONFIG_MKDIR=y
+CONFIG_CAT=y
+CONFIG_ECHO=y
+CONFIG_FIND=y
+CONFIG_STATIC=y
+EOF
+
+# Compile with static linking
+make oldconfig
+make -j$(nproc) LDFLAGS=&quot;-static&quot;
+
+# Verify binary size
+ls -lh busybox
+</code></pre><p><strong>Static linking</strong> ensures the binary operates independently, without requiring shared libraries. This is critical for embedded systems.</p><hr><h2 id="6-root-filesystem-construction">6. Root Filesystem Construction</h2><h3 id="directory-structure-establishment">Directory Structure Establishment</h3><pre><code class="language-bash">cd ~/minimal-os/rootfs
+
+# Create essential directories
+mkdir -p {bin,sbin,etc,proc,sys,dev,var,tmp,www,boot/syslinux}
+
+# Copy compiled binaries
+cp ~/minimal-os/kernel/linux-6.1.158/arch/x86/boot/bzImage boot/kernel
+cp ~/minimal-os/busybox/busybox-1.36.1/busybox bin/
+
+# Create symbolic link
+cd bin &amp;&amp; ln -s busybox sh &amp;&amp; cd ..
+</code></pre><h3 id="system-initialisation-scripts">System Initialisation Scripts</h3><pre><code class="language-bash"># Create init script
+cat &gt; etc/init.d/rcS &lt;&lt; &#39;EOF&#39;
+#!/bin/sh
+mount -t proc none /proc
+mount -t sysfs none /sys
+mount -t devtmpfs none /dev
+hostname minimal-web-server
+echo &quot;Minimal Web OS Initialising...&quot;
+ifconfig lo 127.0.0.1
+udhcpc -i eth0 &amp;
+/bin/busybox httpd -h /www
+EOF
+
+chmod +x etc/init.d/rcS
+
+# Create inittab configuration
+cat &gt; etc/inittab &lt;&lt; &#39;EOF&#39;
+::sysinit:/etc/init.d/rcS
+::askfirst:/bin/sh
+::ctrlaltdel:/bin/umount -a -r
+EOF
+
+# System user files
+cat &gt; etc/passwd &lt;&lt; &#39;EOF&#39;
+root:x:0:0:root:/root:/bin/sh
+EOF
+
+cat &gt; etc/group &lt;&lt; &#39;EOF&#39;
+root:x:0:
+EOF
+</code></pre><h3 id="web-content">Web Content</h3><pre><code class="language-bash"># Create sample webpage
+cat &gt; www/index.html &lt;&lt; &#39;EOF&#39;
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;Minimal Web Server&lt;/title&gt;
+    &lt;style&gt;
+        body { font-family: &#39;Segoe UI&#39;, Tahoma, Geneva, Verdana, sans-serif; 
+               background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+               padding: 20px; margin: 0; }
+        .container { max-width: 600px; margin: 0 auto; 
+                    background: white; padding: 30px; border-radius: 8px; 
+                    box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        h1 { color: #333; margin-top: 0; }
+        .status { background: #d4edda; color: #155724; 
+                 padding: 15px; border-radius: 4px; }
+        p { color: #666; line-height: 1.6; }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div class=&quot;container&quot;&gt;
+        &lt;h1&gt;✓ Minimal Operating System&lt;/h1&gt;
+        &lt;div class=&quot;status&quot;&gt;
+            &lt;strong&gt;Status:&lt;/strong&gt; Web server operational
+        &lt;/div&gt;
+        &lt;p&gt;This server is executing upon a custom-engineered minimal Linux operating system, constrained to approximately 12 megabytes.&lt;/p&gt;
+        &lt;p&gt;&lt;strong&gt;System Specifications:&lt;/strong&gt;&lt;/p&gt;
+        &lt;ul&gt;
+            &lt;li&gt;Total OS size: ~12 MB&lt;/li&gt;
+            &lt;li&gt;Kernel: Linux 6.1.158 (minimal configuration)&lt;/li&gt;
+            &lt;li&gt;Utilities: Busybox 1.36.1&lt;/li&gt;
+            &lt;li&gt;Web Server: Busybox httpd&lt;/li&gt;
+            &lt;li&gt;Filesystem: ext4&lt;/li&gt;
+        &lt;/ul&gt;
+    &lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+EOF
+</code></pre><hr><h2 id="7-bootloader-installation">7. Bootloader Installation</h2><h3 id="syslinux-the-boot-manager">Syslinux: The Boot Manager</h3><p>Syslinux provides a lightweight bootloader capable of loading and executing the Linux kernel.</p><pre><code class="language-bash">cd ~/minimal-os/syslinux
+wget https://mirrors.edge.kernel.org/pub/linux/utils/boot/syslinux/syslinux-6.03.tar.gz
+tar xf syslinux-6.03.tar.gz
+cd syslinux-6.03
+
+# Compile Syslinux
+make -j$(nproc)
+
+# Locate the bootloader binary
+find . -name &quot;syslinux.bin&quot; -type f
+</code></pre><h3 id="boot-configuration">Boot Configuration</h3><pre><code class="language-bash">cd ~/minimal-os/rootfs/boot/syslinux
+
+cat &gt; syslinux.cfg &lt;&lt; &#39;EOF&#39;
+PROMPT 1
+TIMEOUT 50
+DEFAULT linux
+
+LABEL linux
+    KERNEL /boot/kernel
+    APPEND root=/dev/sda1 console=ttyS0 console=tty0 quiet
+EOF
+</code></pre><hr><h2 id="8-creating-the-bootable-disk-image">8. Creating the Bootable Disk Image</h2><h3 id="disk-image-generation">Disk Image Generation</h3><pre><code class="language-bash">cd ~/minimal-os
+
+# Create 12 MB raw disk image
+dd if=/dev/zero of=disk.img bs=1M count=12
+
+# Create partition table
+(echo o; echo n; echo p; echo 1; echo ; echo ; echo w) | fdisk disk.img
+
+# Establish loop device
+LOOP=$(sudo losetup -f)
+sudo losetup $LOOP disk.img -o 1048576
+
+# Format partition
+sudo mkfs.ext4 -F $LOOP
+
+# Mount and populate
+mkdir -p mnt
+sudo mount $LOOP mnt
+sudo cp -r rootfs/* mnt/
+sudo sync
+sudo umount mnt
+
+# Install bootloader
+SYSLINUX_BIN=$(find syslinux/syslinux-6.03 -name &quot;syslinux.bin&quot; -type f | head -1)
+sudo dd if=$SYSLINUX_BIN of=disk.img bs=1 count=440 conv=notrunc
+
+# Finalisation
+sudo losetup -d $LOOP
+
+# Verification
+ls -lh disk.img
+</code></pre><hr><h2 id="9-deployment-and-testing">9. Deployment and Testing</h2><h3 id="qemu-emulation-recommended">QEMU Emulation (Recommended)</h3><p>For initial testing, QEMU provides a safe, isolated environment:</p><pre><code class="language-bash">qemu-system-x86_64 -drive file=disk.img,format=raw \
+  -m 256 \
+  -netdev user,id=net0 \
+  -device e1000,netdev=net0 \
+  -nographic \
+  -serial mon:stdio
+</code></pre><h3 id="expected-behaviour">Expected Behaviour</h3><p>Upon boot, you should observe:</p><ol><li>Bootloader initialisation via Syslinux</li><li>Kernel loading and initialisation messages</li><li>Network interface configuration via DHCP</li><li>Web server activation on port 80</li><li>System ready for incoming HTTP requests</li></ol><h3 id="testing-connectivity">Testing Connectivity</h3><pre><code class="language-bash"># From your host system (in another terminal)
+# If using QEMU user networking, access at localhost
+
+# Get IP from QEMU output, then:
+curl http://192.168.x.x
+# Should return your HTML page
+</code></pre><h3 id="physical-hardware-deployment-advanced">Physical Hardware Deployment (Advanced)</h3><p><strong>Caution:</strong> This operation will overwrite your target storage device.</p><pre><code class="language-bash"># Write to USB drive (replace sdX with your device)
+sudo dd if=disk.img of=/dev/sdX bs=4M conv=fsync
+sudo sync
+</code></pre><hr><h2 id="10-optimisation-and-troubleshooting">10. Optimisation and Troubleshooting</h2><h3 id="size-reduction-strategies">Size Reduction Strategies</h3><p>Should your system exceed 12 MB, consider:</p><ol><li><strong>Binary stripping:</strong> <code>strip ~/minimal-os/rootfs/bin/busybox</code></li><li><strong>Kernel compression:</strong> Enable XZ compression in <code>CONFIG_KERNEL_XZ</code></li><li><strong>Minimal configuration:</strong> Disable unused Busybox utilities</li><li><strong>Filesystem optimisation:</strong> Remove unnecessary files from <code>/var</code></li></ol><h3 id="common-issues-and-remedies">Common Issues and Remedies</h3><table><thead><tr><th>Issue</th><th>Solution</th></tr></thead><tbody><tr><td>Kernel fails to compile</td><td>Reinstall <code>libelf-dev</code>, <code>libdw-dev</code></td></tr><tr><td>Network unreachable</td><td>Verify <code>CONFIG_NETDEVICES=y</code> and <code>CONFIG_E1000=y</code></td></tr><tr><td>Web server won’t start</td><td>Check <code>/www/index.html</code> exists and permissions</td></tr><tr><td>Boot hangs at Syslinux</td><td>Verify kernel path in <code>syslinux.cfg</code> is correct</td></tr><tr><td>Filesystem corruption</td><td>Regenerate disk image from scratch</td></tr></tbody></table><hr><h2 id="11-conclusions-and-future-considerations">11. Conclusions and Future Considerations</h2><h3 id="achievements">Achievements</h3><p>Through this exercise, we have demonstrated:</p><ul><li>The viability of creating functional operating systems at minimal scale</li><li>The efficacy of leveraging established open-source components</li><li>The potential for deploying systems on severely constrained hardware</li></ul><h3 id="practical-applications">Practical Applications</h3><p>Such minimalist systems prove invaluable for:</p><ul><li>Embedded IoT devices</li><li>Legacy hardware revitalisation</li><li>Disaster recovery and minimal boot environments</li><li>Educational purposes and systems programming study</li><li>Network-attached storage (NAS) on minimal hardware</li></ul><h3 id="further-enhancements">Further Enhancements</h3><p>For production deployment, one might consider:</p><ul><li>Integration with Docker for containerised applications</li><li>Implementation of systemd for more sophisticated service management</li><li>SSL/TLS support for secure web communications</li><li>Database integration for dynamic content generation</li><li>Automated deployment via cloud-init or similar technologies</li></ul><hr><h2 id="12-final-remarks">12. Final Remarks</h2><p>The construction of a minimal operating system represents not merely a technical exercise, but a valuable reminder that contemporary bloat is not inevitable. By understanding the constituent components of an operating system and making deliberate design choices, one can create systems that are simultaneously powerful and parsimonious in their resource consumption.</p><p>This approach, building only what is necessary, remains a cornerstone principle of excellent engineering, whether applied to operating systems, software architecture, or infrastructure design.</p><hr><h2 id="appendix-a-complete-build-script">Appendix A: Complete Build Script</h2><p>For those preferring automation:</p><pre><code class="language-bash">#!/bin/bash
+set -e
+
+cd ~/minimal-os
+
+echo &quot;=== Compiling Linux Kernel ===&quot;
+cd kernel/linux-6.1.158
+make -j$(nproc)
+cp arch/x86/boot/bzImage ../../../rootfs/boot/kernel
+
+echo &quot;=== Compiling Busybox ===&quot;
+cd ~/minimal-os/busybox/busybox-1.36.1
+make -j$(nproc) LDFLAGS=&quot;-static&quot;
+cp busybox ../../rootfs/bin/
+cd ../../rootfs/bin &amp;&amp; ln -sf busybox sh
+
+echo &quot;=== Building Syslinux ===&quot;
+cd ~/minimal-os/syslinux/syslinux-6.03
+make -j$(nproc)
+
+echo &quot;=== Creating Disk Image ===&quot;
+cd ~/minimal-os
+dd if=/dev/zero of=disk.img bs=1M count=12
+(echo o; echo n; echo p; echo 1; echo ; echo ; echo w) | fdisk disk.img
+
+LOOP=$(sudo losetup -f)
+sudo losetup $LOOP disk.img -o 1048576
+sudo mkfs.ext4 -F $LOOP
+mkdir -p mnt
+sudo mount $LOOP mnt
+sudo cp -r rootfs/* mnt/
+sudo sync
+sudo umount mnt
+
+SYSLINUX_BIN=$(find syslinux/syslinux-6.03 -name &quot;syslinux.bin&quot; | head -1)
+sudo dd if=$SYSLINUX_BIN of=disk.img bs=1 count=440 conv=notrunc
+sudo losetup -d $LOOP
+
+echo &quot;✓ Build complete!&quot;
+ls -lh disk.img
+</code></pre><hr><h2 id="references">References</h2><ul><li>Linux Kernel Documentation: <a href="https://www.kernel.org/doc/">https://www.kernel.org/doc/</a></li><li>Busybox Project: <a href="https://busybox.net/">https://busybox.net/</a></li><li>Syslinux Project: <a href="https://syslinux.org/">https://syslinux.org/</a></li><li>QEMU Documentation: <a href="https://www.qemu.org/documentation/">https://www.qemu.org/documentation/</a></li></ul></div><footer class="content__footer"><div class="entry-wrapper"><p class="content__updated">This article was updated on July 30, 2026</p><div class="content__actions"><ul class="content__tag"><li><a href="https://ehmi.se/blog/tags/book-summery/">book summery</a></li><li><a href="https://ehmi.se/blog/tags/linux-kernel-compilation/">Linux kernel compilation</a></li><li><a href="https://ehmi.se/blog/tags/tutorial/">tutorial</a></li></ul><div class="content__share"><button class="btn--icon content__share-button js-content__share-button"><svg width="20" height="20" aria-hidden="true"><use xlink:href="https://ehmi.se/blog/assets/svg/svg-map.svg#share"></use></svg> <span>Share It</span></button><div class="content__share-popup js-content__share-popup"><a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fehmi.se%2Fblog%2Fconstructing-a-minimal-12mb-operating-system-for-web-hosting-a-comprehensive-technical-guide%2F" class="js-share facebook" rel="nofollow noopener noreferrer"><svg class="icon" aria-hidden="true" focusable="false"><use xlink:href="https://ehmi.se/blog/assets/svg/svg-map.svg#facebook"/></svg> <span>Facebook</span> </a><a href="https://twitter.com/intent/tweet?url=https%3A%2F%2Fehmi.se%2Fblog%2Fconstructing-a-minimal-12mb-operating-system-for-web-hosting-a-comprehensive-technical-guide%2F&amp;via=Ehmi0k&amp;text=Constructing%20a%20Minimal%2012MB%20Operating%20System%20for%20Web%20Hosting%3A%20A%20Comprehensive%20Technical%20Guide" class="js-share twitter" rel="nofollow noopener noreferrer"><svg class="icon" aria-hidden="true" focusable="false"><use xlink:href="https://ehmi.se/blog/assets/svg/svg-map.svg#twitter"/></svg> <span>Twitter</span> </a><a href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fehmi.se%2Fblog%2Fconstructing-a-minimal-12mb-operating-system-for-web-hosting-a-comprehensive-technical-guide%2F" class="js-share linkedin" rel="nofollow noopener noreferrer"><svg class="icon" aria-hidden="true" focusable="false"><use xlink:href="https://ehmi.se/blog/assets/svg/svg-map.svg#linkedin"/></svg> <span>LinkedIn</span></a></div></div></div><div class="content__bio bio"><div><h3 class="h4 bio__name"><a href="https://ehmi.se/blog/authors/ehmad/" rel="author">Ehmad</a></h3></div></div></div><nav class="content__nav"><div class="wrapper"><div class="content__nav-inner"><div class="content__nav-prev"><a href="https://ehmi.se/blog/how-to-use-discord-webhook-with-examples-the-ultimate-step-by-step-guide/" class="content__nav-link" rel="prev"><figure class="content__nav-image"><img src="https://ehmi.se/blog/media/posts/47/responsive/image_proxy-2-xs.webp" class="lazyload" loading="lazy" alt="" height="310" width="310"></figure><div><span>Previous</span> How to Use Discord Webhook with Examples: The Ultimate Step-by-Step Guide</div></a></div><div class="content__nav-next"><a href="https://ehmi.se/blog/building-a-unified-deployment-pipeline-merging-three-applications-into-one-coherent-site/" class="content__nav-link" rel="next"><div><span>Next</span> Building a Unified Deployment Pipeline: Merging Three Applications into One Coherent Site</div><figure class="content__nav-image"><img src="https://ehmi.se/blog/media/posts/49/responsive/Screenshot-2025-11-29-140413-2-xs.webp" class="lazyload" loading="lazy" alt="Git repo mrxehmad ehmi-se-unified build" height="487" width="487"></figure></a></div></div></div></nav></footer></article><div class="content__related related"><div class="wrapper"><h2 class="h4 related__title">You should also read:</h2><article class="feed__item feed__item--centered"><div class="feed__content"><header><div class="feed__meta"><a href="https://ehmi.se/blog/authors/ehmad/" class="feed__author">Ehmad</a> <time datetime="2026-07-30T15:07" class="feed__date">July 30, 2026</time></div><h3 class="feed__title"><a href="https://ehmi.se/blog/accidentally-pushing-credentials-to-github-a-technical-post-mortem/">Accidentally Pushing Credentials to GitHub: A Technical Post-Mortem</a></h3></header><p>A Deep Dive into Git Secret Exposure, Recovery, and Prevention A production environment’s .env file containing sensitive credentials was accidentally committed and pushed to a public GitHub repository. What seemed like a straightforward fix quickly escalated into a multi-layered incident affecting production services and requiring&hellip;</p><a href="https://ehmi.se/blog/accidentally-pushing-credentials-to-github-a-technical-post-mortem/" class="readmore feed__readmore">Continue reading...</a></div></article><article class="feed__item feed__item--centered"><div class="feed__content"><header><div class="feed__meta"><a href="https://ehmi.se/blog/authors/ehmad/" class="feed__author">Ehmad</a> <time datetime="2025-08-24T18:59" class="feed__date">August 24, 2025</time></div><h3 class="feed__title"><a href="https://ehmi.se/blog/how-to-use-discord-webhook-with-examples-the-ultimate-step-by-step-guide/">How to Use Discord Webhook with Examples: The Ultimate Step-by-Step Guide</a></h3></header><p>Introduction to Discord Webhooks Discord has grown beyond a simple voice chat platform into a full-fledged community hub for gamers, developers, and businesses alike. One of the most powerful tools it offers is webhooks. But what exactly are Discord webhooks, and how can you use&hellip;</p><a href="https://ehmi.se/blog/how-to-use-discord-webhook-with-examples-the-ultimate-step-by-step-guide/" class="readmore feed__readmore">Continue reading...</a></div></article></div></div></main><footer class="footer footer--glued"><div class="wrapper"><nav class="footer__nav"><ul><li><a href="https://ehmi.se/blog/terms-and-conditions-for-ehmi/" class="al" target="_self">Terms and Conditions</a></li><li><a href="https://ehmi.se/blog/privacy-policy-for-ehmi/" class="al" target="_self">Privacy Policy</a></li><li><a href="https://ehmi.se/blog/contact-us/" class="al" target="_self">Contact</a></li><li><a href="https://github.com/mrxehmad/" class="al" target="_blank">Github</a></li></ul></nav><div class="footer__copyright"><p>Copyright 2025</p></div><div class="footer__social"><a href="https://ehmi.se/instagram" aria-label="Instagram"><svg><use xlink:href="https://ehmi.se/blog/assets/svg/svg-map.svg#instagram"/></svg> </a><a href="https://ehmi.se/linkedin" aria-label="LinkedIn"><svg><use xlink:href="https://ehmi.se/blog/assets/svg/svg-map.svg#linkedin"/></svg></a></div><button onclick="backToTopFunction()" id="backToTop" class="footer__bttop" aria-label="Back to top" title="Back to top"><svg width="20" height="20"><use xlink:href="https://ehmi.se/blog/assets/svg/svg-map.svg#toparrow"/></svg></button></div></footer><script defer="defer" src="https://ehmi.se/blog/assets/js/scripts.min.js?v=700105c316933a8202041b6415abb233"></script><script>window.publiiThemeMenuConfig={mobileMenuMode:'sidebar',animationSpeed:300,submenuWidth: 'auto',doubleClickTime:500,mobileMenuExpandableSubmenus:true,relatedContainerForOverlayMenuSelector:'.top'};</script><script>var images = document.querySelectorAll('img[loading]');
+        for (var i = 0; i < images.length; i++) {
+            if (images[i].complete) {
+                images[i].classList.add('is-loaded');
+            } else {
+                images[i].addEventListener('load', function () {
+                    this.classList.add('is-loaded');
+                }, false);
+            }
+        }</script><script>'use strict'; document.addEventListener('DOMContentLoaded', function() { var obfElements = document.querySelectorAll('.obfuscated-email'); obfElements.forEach(function(elem) { var dataType = elem.getAttribute('data-type'); var encodedEmail = elem.getAttribute('data-email'); var user = elem.getAttribute('data-user'); var domain = elem.getAttribute('data-domain'); var decodedEmail = ''; if (user && domain) { decodedEmail = user.split('').reverse().join('') + '@' + domain.split('').reverse().join(''); } else if (encodedEmail) { const parts = encodedEmail.split('@'); if (parts.length === 2) { decodedEmail = parts[0].split('').reverse().join('') + '@' + parts[1].split('').reverse().join(''); } else { decodedEmail = encodedEmail; } } if (dataType === 'mailto') { var originalText = elem.textContent.trim(); var a = document.createElement('a'); a.href = 'mailto:' + decodedEmail; if (elem.classList.length > 0) { a.className = elem.className; } if (originalText === '') { a.textContent = decodedEmail; } else { a.textContent = originalText; } elem.parentNode.replaceChild(a, elem); } else if (dataType === 'text') { var textNode = document.createTextNode(decodedEmail); elem.parentNode.replaceChild(textNode, elem); } }); });</script><script>(function() {
+			var originalTitle = document.title;
+			var timeout;
+			document.addEventListener("visibilitychange", function() {
+				if (document.hidden) {
+					timeout = setTimeout(function() {
+							document.title = "👀 We miss you! Come back!";
+						}, 200);
+				} else {
+					clearTimeout(timeout);
+					setTimeout(function() {
+							document.title = "🎉 Welcome back!";
+							setTimeout(function() {
+								document.title = originalTitle;
+							}, 2000);
+						}, 100);
+				}
+			});
+		})();</script><script src="https://ehmi.se/blog/media/plugins/pagePrefetching/quicklink.umd.js"></script><script>window.addEventListener('load', () => {
+					quicklink.listen({
+						prerender: true,
+						el: document.querySelector('body'),
+						delay: 0,
+						limit: 5,
+						throttle: 5,
+						timeout: 2000
+					});
+				});</script><div class="pcb" data-behaviour="badge" data-behaviour-link="#cookie-settings" data-revision="1" data-config-ttl="90" data-debug-mode="false"><div role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="pcb-title" aria-describedby="pcb-txt" class="pcb__banner pcb__banner--right"><div class="pcb__inner"><div id="pcb-title" role="heading" aria-level="2" class="pcb__title">This website uses cookies</div><div id="pcb-txt" class="pcb__txt">Select which cookies to opt-in to via the checkboxes below; our website uses cookies to examine site traffic and user activity while on our site, for marketing, and to provide social media functionality. <a href="https://ehmi.se/blog/privacy-policy-for-ehmi/">More details...</a></div><div class="pcb__buttons"><button type="button" class="pcb__btn pcb__btn--link pcb__btn--configure" aria-haspopup="dialog">Manage preferences</button> <button type="button" class="pcb__btn pcb__btn--reject">Reject</button> <button type="button" class="pcb__btn pcb__btn--solid pcb__btn--accept">Accept all</button></div></div></div><div class="pcb__popup" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="pcb-popup-title"><div class="pcb__popup__wrapper"><div class="pcb__inner pcb__popup__inner"><div class="pcb__popup__heading"><div id="pcb-popup-title" role="heading" aria-level="2" class="pcb__title">Cookie settings</div><button class="pcb__popup__close" aria-label="Close"></button></div><div class="pcb__popup__content"><div class="pcb__txt pcb__popup__txt">We use cookies to enhance your browsing experience, serve personalized ads or content, and analyze our traffic. By clicking "Accept All", you consent to our use of cookies. <a href="https://ehmi.se/blog/privacy-policy-for-ehmi/">More details...</a></div><ul class="pcb__groups"><li class="pcb__group"><details><summary class="pcb__group__title no-desc">Required</summary></details><div class="pcb__popup__switch is-checked"><input type="checkbox" data-group-name="" id="pcb-group-0" checked="checked"> <label for="pcb-group-0">Required</label></div></li></ul></div><div class="pcb__buttons pcb__popup__buttons"><button type="button" class="pcb__btn pcb__btn--solid pcb__btn--accept">Accept all</button> <button type="button" class="pcb__btn pcb__btn--reject">Reject all</button> <button type="button" class="pcb__btn pcb__btn--save">Save settings</button></div></div></div></div><div class="pcb__overlay" aria-hidden="true"></div><button class="pcb__badge" aria-label="Cookie Policy" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" width="40" height="40" viewBox="0 0 23 23" fill="currentColor"><path d="M21.41 12.71c-.08-.01-.15 0-.22 0h-.03c-.03 0-.05 0-.08.01-.07 0-.13.01-.19.04-.52.21-1.44.19-2.02-.22-.44-.31-.65-.83-.62-1.53a.758.758 0 0 0-.27-.61.73.73 0 0 0-.65-.14c-1.98.51-3.49.23-4.26-.78-.82-1.08-.73-2.89.24-4.49.14-.23.14-.52 0-.75a.756.756 0 0 0-.67-.36c-.64.03-1.11-.1-1.31-.35-.19-.26-.13-.71-.01-1.29.04-.18.06-.38.03-.59-.05-.4-.4-.7-.81-.66C5.1 1.54 1 6.04 1 11.48 1 17.28 5.75 22 11.6 22c5.02 0 9.39-3.54 10.39-8.42.08-.4-.18-.78-.58-.87Zm-9.81 7.82c-5.03 0-9.12-4.06-9.12-9.06 0-4.34 3.05-8 7.25-8.86-.08.7.05 1.33.42 1.81.24.32.66.67 1.38.84-.76 1.86-.65 3.78.36 5.11.61.81 2.03 2 4.95 1.51.18.96.71 1.54 1.18 1.87.62.43 1.38.62 2.1.62.05 0 .09 0 .13-.01-1.23 3.64-4.7 6.18-8.64 6.18ZM13 17c0 .55-.45 1-1 1s-1-.45-1-1 .45-1 1-1 1 .45 1 1Zm5.29-12.3a.99.99 0 0 1-.29-.71c0-.55.45-.99 1-.99a1 1 0 0 1 .71.3c.19.19.29.44.29.71 0 .55-.45.99-1 .99a1 1 0 0 1-.71-.3ZM9 13.5c0 .83-.67 1.5-1.5 1.5S6 14.33 6 13.5 6.67 12 7.5 12s1.5.67 1.5 1.5Zm3.25.81a.744.744 0 0 1-.06-1.05c.28-.32.75-.34 1.05-.06.31.28.33.75.05 1.06-.15.16-.35.25-.56.25-.18 0-.36-.06-.5-.19ZM8.68 7.26c.41.37.44 1 .07 1.41-.2.22-.47.33-.75.33a.96.96 0 0 1-.67-.26c-.41-.37-.44-1-.07-1.41.37-.42 1-.45 1.41-.08Zm11.48 1.88c.18-.19.52-.19.7 0 .05.04.09.1.11.16.03.06.04.12.04.19 0 .13-.05.26-.15.35-.09.1-.22.15-.35.15s-.26-.05-.35-.15a.355.355 0 0 1-.11-.16.433.433 0 0 1-.04-.19c0-.13.05-.26.15-.35Zm-4.93-1.86a.75.75 0 1 1 1.059-1.06.75.75 0 0 1-1.059 1.06Z"/></svg></button></div><script>window.dataLayer = window.dataLayer || [];
+                function gtag() { dataLayer.push(arguments); }
+
+                window.publiiCBGCM = {
+                    defaultState: {"ad_storage":true,"ad_personalization":true,"ad_user_data":true,"analytics_storage":true,"personalization_storage":true,"functionality_storage":true,"security_storage":false},
+                    groups: []
+                };
+            
+            (function(win) {
+    if (!document.querySelector('.pcb')) {
+        return;
+    }
+
+    var cbConfig = {
+        behaviour: document.querySelector('.pcb').getAttribute('data-behaviour'),
+        behaviourLink: document.querySelector('.pcb').getAttribute('data-behaviour-link'),
+        revision: document.querySelector('.pcb').getAttribute('data-revision'),
+        configTTL: parseInt(document.querySelector('.pcb').getAttribute('data-config-ttl'), 10),
+        debugMode: document.querySelector('.pcb').getAttribute('data-debug-mode') === 'true',
+        initialState: null,
+        initialLsState: null,
+        previouslyAccepted: []
+    };
+
+    var cbUI = {
+        wrapper: document.querySelector('.pcb'),
+        banner: {
+            element: null,
+            btnAccept: null,
+            btnReject: null,
+            btnConfigure: null
+        },
+        popup: {
+            element: null,
+            btnClose: null,
+            btnSave: null,
+            btnAccept: null,
+            btnReject: null,
+            checkboxes: null,
+        },
+        overlay: null,
+        badge: null,
+        blockedScripts: document.querySelectorAll('script[type^="gdpr-blocker/"]'),
+        triggerLinks: cbConfig.behaviourLink ? document.querySelectorAll('a[href*="' + cbConfig.behaviourLink + '"]') : null
+    };
+
+    function initUI () {
+        // setup banner elements
+        cbUI.banner.element = cbUI.wrapper.querySelector('.pcb__banner');
+        cbUI.banner.btnAccept = cbUI.banner.element.querySelector('.pcb__btn--accept');
+        cbUI.banner.btnReject = cbUI.banner.element.querySelector('.pcb__btn--reject');
+        cbUI.banner.btnConfigure = cbUI.banner.element.querySelector('.pcb__btn--configure');
+
+        // setup popup elements
+        if (cbUI.wrapper.querySelector('.pcb__popup')) {
+            cbUI.popup.element = cbUI.wrapper.querySelector('.pcb__popup');
+            cbUI.popup.btnClose = cbUI.wrapper.querySelector('.pcb__popup__close');
+            cbUI.popup.btnSave = cbUI.popup.element.querySelector('.pcb__btn--save');
+            cbUI.popup.btnAccept = cbUI.popup.element.querySelector('.pcb__btn--accept');
+            cbUI.popup.btnReject = cbUI.popup.element.querySelector('.pcb__btn--reject');
+            cbUI.popup.checkboxes = cbUI.popup.element.querySelector('input[type="checkbox"]');
+            // setup overlay
+            cbUI.overlay = cbUI.wrapper.querySelector('.pcb__overlay');
+        }
+
+        cbUI.badge = cbUI.wrapper.querySelector('.pcb__badge');
+
+        if (cbConfig.behaviour.indexOf('link') > -1) {
+            for (var i = 0; i < cbUI.triggerLinks.length; i++) {
+                cbUI.triggerLinks[i].addEventListener('click', function(e) {
+                    e.preventDefault();
+                    showBannerOrPopup();
+                });
+            }
+        }
+    }
+
+    function initState () {
+        var lsKeyName = getConfigName();
+        var currentConfig = localStorage.getItem(lsKeyName);
+        var configIsFresh = checkIfConfigIsFresh();
+
+        if (!configIsFresh || currentConfig === null) {
+            if (cbConfig.debugMode) {
+                console.log('🍪 Config not found, or configuration expired');
+            }
+
+            if (window.publiiCBGCM) {
+                gtag('consent', 'default', {
+                    'ad_storage': window.publiiCBGCM.defaultState.ad_storage ? 'granted' : 'denied',
+                    'ad_personalization': window.publiiCBGCM.defaultState.ad_personalization ? 'granted' : 'denied',
+                    'ad_user_data': window.publiiCBGCM.defaultState.ad_user_data ? 'granted' : 'denied',
+                    'analytics_storage': window.publiiCBGCM.defaultState.analytics_storage ? 'granted' : 'denied',
+                    'personalization_storage': window.publiiCBGCM.defaultState.personalization_storage ? 'granted' : 'denied',
+                    'functionality_storage': window.publiiCBGCM.defaultState.functionality_storage ? 'granted' : 'denied',
+                    'security_storage': window.publiiCBGCM.defaultState.security_storage ? 'granted' : 'denied'
+                });  
+                
+                if (cbConfig.debugMode) {
+                    console.log('🍪 GCMv2 DEFAULT STATE: ' + JSON.stringify({
+                        'ad_storage': window.publiiCBGCM.defaultState.ad_storage ? 'granted' : 'denied',
+                        'ad_personalization': window.publiiCBGCM.defaultState.ad_personalization ? 'granted' : 'denied',
+                        'ad_user_data': window.publiiCBGCM.defaultState.ad_user_data ? 'granted' : 'denied',
+                        'analytics_storage': window.publiiCBGCM.defaultState.analytics_storage ? 'granted' : 'denied',
+                        'personalization_storage': window.publiiCBGCM.defaultState.personalization_storage ? 'granted' : 'denied',
+                        'functionality_storage': window.publiiCBGCM.defaultState.functionality_storage ? 'granted' : 'denied',
+                        'security_storage': window.publiiCBGCM.defaultState.security_storage ? 'granted' : 'denied'
+                    }));
+                }
+            }
+
+            showBanner();
+        } else if (typeof currentConfig === 'string') {
+            if (cbConfig.debugMode) {
+                console.log('🍪 Config founded');
+            }
+
+            cbConfig.initialLsState = currentConfig.split(',');
+
+            if (window.publiiCBGCM) {
+                gtag('consent', 'default', {
+                    'ad_storage': getDefaultConsentState(currentConfig, 'ad_storage'),
+                    'ad_personalization': getDefaultConsentState(currentConfig, 'ad_personalization'),
+                    'ad_user_data': getDefaultConsentState(currentConfig, 'ad_user_data'),
+                    'analytics_storage': getDefaultConsentState(currentConfig, 'analytics_storage'),
+                    'personalization_storage': getDefaultConsentState(currentConfig, 'personalization_storage'),
+                    'functionality_storage': getDefaultConsentState(currentConfig, 'functionality_storage'),
+                    'security_storage': getDefaultConsentState(currentConfig, 'security_storage')
+                });
+                
+                if (cbConfig.debugMode) {
+                    console.log('🍪 GCMv2 DEFAULT STATE: ' + JSON.stringify({
+                        'ad_storage': getDefaultConsentState(currentConfig, 'ad_storage'),
+                        'ad_personalization': getDefaultConsentState(currentConfig, 'ad_personalization'),
+                        'ad_user_data': getDefaultConsentState(currentConfig, 'ad_user_data'),
+                        'analytics_storage': getDefaultConsentState(currentConfig, 'analytics_storage'),
+                        'personalization_storage': getDefaultConsentState(currentConfig, 'personalization_storage'),
+                        'functionality_storage': getDefaultConsentState(currentConfig, 'functionality_storage'),
+                        'security_storage': getDefaultConsentState(currentConfig, 'security_storage')
+                    }));
+                }
+            }
+
+            showBadge();
+
+            if (cbUI.popup.element) {
+                var allowedGroups = currentConfig.split(',');
+                var checkedCheckboxes = cbUI.popup.element.querySelectorAll('input[type="checkbox"]:checked');
+
+                for (var j = 0; j < checkedCheckboxes.length; j++) {
+                    var name = checkedCheckboxes[j].getAttribute('data-group-name');
+
+                    if (name && name !== '-' && allowedGroups.indexOf(name) === -1) {
+                        checkedCheckboxes[j].checked = false;
+                    }
+                }
+
+                for (var i = 0; i < allowedGroups.length; i++) {
+                    var checkbox = cbUI.popup.element.querySelector('input[type="checkbox"][data-group-name="' + allowedGroups[i] + '"]');
+
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
+
+                    allowCookieGroup(allowedGroups[i]);
+                }
+            }
+        }
+
+        setTimeout(function () {
+            cbConfig.initialState = getInitialStateOfConsents();
+        }, 0);
+    }
+
+    function checkIfConfigIsFresh () {
+        var lastConfigSave = localStorage.getItem('publii-gdpr-cookies-config-save-date');
+
+        if (lastConfigSave === null) {
+            return false;
+        }
+
+        lastConfigSave = parseInt(lastConfigSave, 10);
+
+        if (lastConfigSave === 0) {
+            return true;
+        }
+
+        if (+new Date() - lastConfigSave < cbConfig.configTTL * 24 * 60 * 60 * 1000) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function getDefaultConsentState (currentConfig, consentGroup) {
+        let configGroups = currentConfig.split(',');
+
+        for (let i = 0; i < configGroups.length; i++) {
+            let groupName = configGroups[i];
+            let group = window.publiiCBGCM.groups.find(group => group.cookieGroup === groupName);
+
+            if (group && group[consentGroup]) {
+                return 'granted';
+            }
+        }  
+        
+        if (window.publiiCBGCM.defaultState[consentGroup]) {
+            return 'granted'; 
+        }
+        
+        return 'denied';
+    }
+
+    function initBannerEvents () {
+        cbUI.banner.btnAccept.addEventListener('click', function (e) {
+            e.preventDefault();
+            acceptAllCookies('banner');
+            showBadge();
+        }, false);
+
+        if (cbUI.banner.btnReject) {
+            cbUI.banner.btnReject.addEventListener('click', function (e) {
+                e.preventDefault();
+                rejectAllCookies();
+                showBadge();
+            }, false);
+        }
+
+        if (cbUI.banner.btnConfigure) {
+            cbUI.banner.btnConfigure.addEventListener('click', function (e) {
+                e.preventDefault();
+                hideBanner();
+                showAdvancedPopup();
+                showBadge();
+            }, false);
+        }
+    }
+
+    function initPopupEvents () {
+        if (!cbUI.popup.element) {
+            return;
+        }
+
+        cbUI.overlay.addEventListener('click', function (e) {
+            hideAdvancedPopup();
+        }, false);
+
+        cbUI.popup.element.addEventListener('click', function (e) {
+            e.stopPropagation();
+        }, false);
+
+        cbUI.popup.btnAccept.addEventListener('click', function (e) {
+            e.preventDefault();
+            acceptAllCookies('popup');
+        }, false);
+
+        cbUI.popup.btnReject.addEventListener('click', function (e) {
+            e.preventDefault();
+            rejectAllCookies();
+        }, false);
+
+        cbUI.popup.btnSave.addEventListener('click', function (e) {
+            e.preventDefault();
+            saveConfiguration();
+        }, false);
+
+        cbUI.popup.btnClose.addEventListener('click', function (e) {
+            e.preventDefault();
+            hideAdvancedPopup();
+        }, false);
+    }
+
+    function initBadgeEvents () {
+        if (!cbUI.badge) {
+            return;
+        }
+
+        cbUI.badge.addEventListener('click', function (e) {
+            showBannerOrPopup();
+        }, false);
+    }
+
+    initUI();
+    initState();
+    initBannerEvents();
+    initPopupEvents();
+    initBadgeEvents();
+
+    /**
+     * API
+     */
+    function addScript (src, inline) {
+        var newScript = document.createElement('script');
+
+        if (src) {
+            newScript.setAttribute('src', src);
+        }
+
+        if (inline) {
+            newScript.text = inline;
+        }
+
+        document.body.appendChild(newScript);
+    }
+
+    function allowCookieGroup (allowedGroup) {
+        var scripts = document.querySelectorAll('script[type="gdpr-blocker/' + allowedGroup + '"]');
+        cbConfig.previouslyAccepted.push(allowedGroup);
+    
+        for (var j = 0; j < scripts.length; j++) {
+            addScript(scripts[j].src, scripts[j].text);
+        }
+
+        var groupEvent = new Event('publii-cookie-banner-unblock-' + allowedGroup);
+        document.body.dispatchEvent(groupEvent);
+        unlockEmbeds(allowedGroup);
+
+        if (cbConfig.debugMode) {
+            console.log('🍪 Allowed group: ' + allowedGroup);
+        }
+
+        if (window.publiiCBGCM && (!cbConfig.initialLsState || cbConfig.initialLsState.indexOf(allowedGroup) === -1)) {
+            let consentResult = {};
+            let group = window.publiiCBGCM.groups.find(group => group.cookieGroup === allowedGroup);
+
+            if (group) {
+                let foundSomeConsents = false;
+
+                Object.keys(group).forEach(key => {
+                    if (key !== 'cookieGroup' && group[key] === true) {
+                        consentResult[key] = 'granted';
+                        foundSomeConsents = true;
+                    }
+                });
+
+                if (foundSomeConsents) {
+                    gtag('consent', 'update', consentResult);   
+
+                    if (cbConfig.debugMode) {
+                        console.log('🍪 GCMv2 UPDATE: ' + JSON.stringify(consentResult));
+                    }
+                }
+            }
+        }
+    }
+
+    function showBannerOrPopup () {
+        if (cbUI.popup.element) {
+            showAdvancedPopup();
+        } else {
+            showBanner();
+        }
+    }
+
+    function showAdvancedPopup () {
+        cbUI.popup.element.classList.add('is-visible');
+        cbUI.overlay.classList.add('is-visible');
+        cbUI.popup.element.setAttribute('aria-hidden', 'false');
+        cbUI.overlay.setAttribute('aria-hidden', 'false');
+    }
+
+    function hideAdvancedPopup () {
+        cbUI.popup.element.classList.remove('is-visible');
+        cbUI.overlay.classList.remove('is-visible');
+        cbUI.popup.element.setAttribute('aria-hidden', 'true');
+        cbUI.overlay.setAttribute('aria-hidden', 'true');
+    }
+
+    function showBanner () {
+        cbUI.banner.element.classList.add('is-visible');
+        cbUI.banner.element.setAttribute('aria-hidden', 'false');
+    }
+
+    function hideBanner () {
+        cbUI.banner.element.classList.remove('is-visible');
+        cbUI.banner.element.setAttribute('aria-hidden', 'true');
+    }
+
+    function showBadge () {
+        if (!cbUI.badge) {
+            return;
+        }
+
+        cbUI.badge.classList.add('is-visible');
+        cbUI.badge.setAttribute('aria-hidden', 'false');
+    }
+
+    function getConfigName () {
+        var lsKeyName = 'publii-gdpr-allowed-cookies';
+
+        if (cbConfig.revision) {
+            lsKeyName = lsKeyName + '-v' + parseInt(cbConfig.revision, 10);
+        }
+
+        return lsKeyName;
+    }
+
+    function storeConfiguration (allowedGroups) {
+        var lsKeyName = getConfigName();
+        var dataToStore = allowedGroups.join(',');
+        localStorage.setItem(lsKeyName, dataToStore);
+
+        if (cbConfig.configTTL === 0) {
+            localStorage.setItem('publii-gdpr-cookies-config-save-date', 0);
+
+            if (cbConfig.debugMode) {
+                console.log('🍪 Store never expiring configuration');
+            }
+        } else {
+            localStorage.setItem('publii-gdpr-cookies-config-save-date', +new Date());
+        }
+    }
+
+    function getInitialStateOfConsents () {
+        if (!cbUI.popup.element) {
+            return [];
+        }
+
+        var checkedGroups = cbUI.popup.element.querySelectorAll('input[type="checkbox"]:checked');
+        var groups = [];
+
+        for (var i = 0; i < checkedGroups.length; i++) {
+            var allowedGroup = checkedGroups[i].getAttribute('data-group-name');
+
+            if (allowedGroup !== '') {
+                groups.push(allowedGroup);
+            }
+        }
+
+        if (cbConfig.debugMode) {
+            console.log('🍪 Initial state: ' + groups.join(', '));
+        }
+
+        return groups;
+    }
+
+    function getCurrentStateOfConsents () {
+        if (!cbUI.popup.element) {
+            return [];
+        }
+
+        var checkedGroups = cbUI.popup.element.querySelectorAll('input[type="checkbox"]:checked');
+        var groups = [];
+
+        for (var i = 0; i < checkedGroups.length; i++) {
+            var allowedGroup = checkedGroups[i].getAttribute('data-group-name');
+
+            if (allowedGroup !== '') {
+                groups.push(allowedGroup);
+            }
+        }
+
+        if (cbConfig.debugMode) {
+            console.log('🍪 State to save: ' + groups.join(', '));
+        }
+
+        return groups;
+    }
+
+    function getAllGroups () {
+        if (!cbUI.popup.element) {
+            return [];
+        }
+
+        var checkedGroups = cbUI.popup.element.querySelectorAll('input[type="checkbox"]');
+        var groups = [];
+
+        for (var i = 0; i < checkedGroups.length; i++) {
+            var allowedGroup = checkedGroups[i].getAttribute('data-group-name');
+
+            if (allowedGroup !== '') {
+                groups.push(allowedGroup);
+            }
+        }
+
+        return groups;
+    }
+
+    function acceptAllCookies (source) {
+        var groupsToAccept = getAllGroups();
+        storeConfiguration(groupsToAccept);
+
+        for (var i = 0; i < groupsToAccept.length; i++) {
+            var group = groupsToAccept[i];
+
+            if (cbConfig.initialState.indexOf(group) > -1 || cbConfig.previouslyAccepted.indexOf(group) > -1) {
+                if (cbConfig.debugMode) {
+                    console.log('🍪 Skip previously activated group: ' + group);
+                }
+
+                continue;
+            }
+
+            allowCookieGroup(group);
+        }
+
+        if (cbUI.popup.element) {
+            var checkboxesToCheck = cbUI.popup.element.querySelectorAll('input[type="checkbox"]');
+
+            for (var j = 0; j < checkboxesToCheck.length; j++) {
+                checkboxesToCheck[j].checked = true;
+            }
+        }
+
+        if (cbConfig.debugMode) {
+            console.log('🍪 Accept all cookies: ', groupsToAccept.join(', '));
+        }
+
+        if (source === 'popup') {
+            hideAdvancedPopup();
+        } else if (source === 'banner') {
+            hideBanner();
+        }
+    }
+
+    function rejectAllCookies () {
+        if (cbConfig.debugMode) {
+            console.log('🍪 Reject all cookies');
+        }
+
+        storeConfiguration([]);
+        setTimeout(function () {
+            window.location.reload();
+        }, 100);
+    }
+
+    function saveConfiguration () {
+        var groupsToAccept = getCurrentStateOfConsents();
+        storeConfiguration(groupsToAccept);
+
+        if (cbConfig.debugMode) {
+            console.log('🍪 Save new config: ', groupsToAccept.join(', '));
+        }
+
+        if (reloadIsNeeded(groupsToAccept)) {
+            setTimeout(function () {
+                window.location.reload();
+            }, 100);
+            return;
+        }
+
+        for (var i = 0; i < groupsToAccept.length; i++) {
+            var group = groupsToAccept[i];
+
+            if (cbConfig.initialState.indexOf(group) > -1 || cbConfig.previouslyAccepted.indexOf(group) > -1) {
+                if (cbConfig.debugMode) {
+                    console.log('🍪 Skip previously activated group: ' + group);
+                }
+
+                continue;
+            }
+
+            allowCookieGroup(group);
+        }
+
+        hideAdvancedPopup();
+    }
+
+    function reloadIsNeeded (groupsToAccept) {
+        // check if user rejected consent for initial groups
+        var initialGroups = cbConfig.initialState;
+        var previouslyAcceptedGroups = cbConfig.previouslyAccepted;
+        var groupsToCheck = initialGroups.concat(previouslyAcceptedGroups);
+
+        for (var i = 0; i < groupsToCheck.length; i++) {
+            var groupToCheck = groupsToCheck[i];
+
+            if (groupToCheck !== '' && groupsToAccept.indexOf(groupToCheck) === -1) {
+                if (cbConfig.debugMode) {
+                    console.log('🍪 Reload is needed due lack of: ', groupToCheck);
+                }
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    function unlockEmbeds (cookieGroup) {
+        var iframesToUnlock = document.querySelectorAll('.pec-wrapper[data-consent-group-id="' + cookieGroup + '"]');
+
+        for (var i = 0; i < iframesToUnlock.length; i++) {
+            var iframeWrapper = iframesToUnlock[i];
+            iframeWrapper.querySelector('.pec-overlay').classList.remove('is-active');
+            iframeWrapper.querySelector('.pec-overlay').setAttribute('aria-hidden', 'true');
+            var iframe = iframeWrapper.querySelector('iframe');
+            iframe.setAttribute('src', iframe.getAttribute('data-consent-src'));
+        }
+    }
+
+    win.publiiEmbedConsentGiven = function (cookieGroup) {
+        // it will unlock embeds
+        allowCookieGroup(cookieGroup);
+
+        var checkbox = cbUI.popup.element.querySelector('input[type="checkbox"][data-group-name="' + cookieGroup + '"]');
+
+        if (checkbox) {
+            checkbox.checked = true;
+        }
+
+        var groupsToAccept = getCurrentStateOfConsents();
+        storeConfiguration(groupsToAccept);
+
+        if (cbConfig.debugMode) {
+            console.log('🍪 Save new config: ', groupsToAccept.join(', '));
+        }
+    }
+})(window);</script></body></html>

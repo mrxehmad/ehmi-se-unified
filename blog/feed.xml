@@ -1,0 +1,2013 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
+    <title>Ehmi</title>
+    <link href="https://ehmi.se/blog/feed.xml" rel="self" />
+    <link href="https://ehmi.se/blog" />
+    <updated>2026-07-30T15:13:49+05:00</updated>
+    <author>
+        <name>Ehmad</name>
+    </author>
+    <id>https://ehmi.se/blog</id>
+
+    <entry>
+        <title>Making an ESP8266 survive in the wild</title>
+        <author>
+            <name>Ehmad</name>
+        </author>
+        <link href="https://ehmi.se/blog/making-an-esp8266-survive-in-the-wild/"/>
+        <id>https://ehmi.se/blog/making-an-esp8266-survive-in-the-wild/</id>
+            <category term="tutorial"/>
+            <category term="php"/>
+            <category term="mdns"/>
+            <category term="iot"/>
+            <category term="esp8266"/>
+            <category term="deployment"/>
+
+        <updated>2026-07-30T15:07:24+05:00</updated>
+            <summary>
+                <![CDATA[
+                    Making an ESP8266 survive in the wild The sketch worked. That was the problem. I had a perfectly reasonable little temperature monitor: an ESP8266, a 10k NTC thermistor on A0, an optional OLED, and code that read the sensor, posted the result to a PHP&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                <h1 id="making-an-esp8266-survive-in-the-wild">Making an ESP8266 survive in the wild</h1>
+<p>The sketch worked. That was the problem.</p><p>I had a perfectly reasonable little temperature monitor: an ESP8266, a 10k NTC thermistor on A0, an optional OLED, and code that read the sensor, posted the result to a PHP endpoint every ten minutes, and hosted a tiny status page. On my desk, with the serial monitor open and the router two meters away, it was flawless.</p><p>Then I asked the obvious question  <em>can I stick this in a shed and forget about it for a year?</em>  and actually looked at the code with that question in mind. The honest answer was no. Not even close. It would probably survive a week, maybe two, and then it would start crashing at inconvenient hours for reasons that would be miserable to diagnose remotely.</p><p>This is the story of fixing all of that, and of what happened the first time it actually ran.</p><h2 id="the-esp8266-wants-to-die-and-string-is-helping-it">The ESP8266 wants to die, and String is helping it</h2>
+<p>The ESP8266 has roughly 50 KB of usable heap. That’s the whole budget. Your WiFi stack, your TLS buffers if you’re unlucky, your web server, your JSON all of it shares that one small pool, and there is no virtual memory, no swap, no second chance.</p><p>My original code built its HTTP payload like this:</p><pre><code class="language-cpp">String payload = &quot;{\&quot;temperature\&quot;:&quot;;
+payload += String(currentTemp, 2);
+payload += &quot;,\&quot;rssi\&quot;:&quot;;
+payload += String(WiFi.RSSI());
+</code></pre>
+<p>Fine. Readable. And every single <code>+=</code> potentially allocates a new buffer, copies the old contents, and frees the old one. Do that a few hundred times a day and the heap turns into Swiss cheese. Eventually an allocation fails in the middle of something important, the CPU panics, and you get a reset reason that says <code>Exception</code> and tells you nothing useful. The classic symptom is a device that runs great for three days and then reboots every forty minutes, forever, until you power-cycle it.</p><p>The fix is boring and total: no <code>String</code> anywhere in the steady state. Everything lives in pre-allocated <code>char</code> arrays and gets written with <code>snprintf</code>. The web page  which used to be a 1.5 KB concatenation  now goes out in chunks from a single static buffer. In normal operation the firmware allocates exactly zero bytes per loop iteration. I can say that with confidence because I watched the free-heap number for an hour and it didn’t move by a single byte.</p><p>While I was in there I also killed <code>WiFi.setAutoReconnect(true)</code>, which I’ve come to believe exists mostly to give people false confidence. It <em>sometimes</em> reconnects. Often it doesn’t. Instead the firmware now runs a proper state machine  disconnected, connecting, connected, failed  that gets one small step per loop iteration, with its own exponential backoff (5 seconds up to 15 minutes). The nice side effect nobody tells you about: because nothing blocks anymore, the OTA handler and the web server stay alive <em>during</em> a reconnect. You can reflash the device while it’s failing to reach WiFi. That has saved me more than once.</p><h2 id="a-pile-of-small-nasties">A pile of small nasties</h2>
+<p>Once the big structural problems were gone, what remained was a long tail of small things that each, individually, will ruin a remote deployment.</p><p><strong>The ADC is noisy.</strong> The ESP8266’s analog input jitters by 3–5 LSB on its own, which on a thermistor translates to the temperature randomly jumping by half a degree. The fix is oversampling: read it 32 times, average, done. Noise drops by √32, about 5.7×, and the readings go from “nervous” to “boring”. Boring is what you want from a sensor.</p><p><strong>Sensors glitch.</strong> Averaging handles noise but not the occasional completely insane single sample  the 22 → 68 → 22 spike that would otherwise put an ugly tooth in every chart. So there’s a persistence filter: a reading that deviates by more than 10°C from the current value is held as a <em>candidate</em> and only accepted if three consecutive readings agree on it. A genuine rapid change still gets through within six seconds. A one-off glitch never does.</p><p><strong><code>millis()</code> overflows.</strong> At 49.7 days. Every timing comparison in the firmware is written as <code>now - last &gt;= interval</code> with unsigned longs, which wraps correctly by law of the C++ standard. I also reboot every 24 hours on purpose, so in practice it never gets anywhere near the wrap  but the code is correct anyway, and “correct anyway” is free.</p><p><strong>Flash has write endurance.</strong> About 100,000 cycles. My first version wrote a boot counter to EEPROM on every boot, which sounds fine until you imagine a crash-loop writing it a thousand times a day. The final version doesn’t write flash at all during normal operation. Boot count, upload totals, reconnect count  all of it lives in RTC user memory, which survives resets but not power loss. I decided that was the right trade: I get counters that persist through crashes and scheduled reboots, zero flash wear, and I accept that unplugging the device resets them. For a monitoring node, that’s obviously correct. The only thing that writes flash anymore is an OTA update, which is what flash is for.</p><p>Is some of this overkill for a thermometer? Absolutely. But the shed is a 40-minute drive away, and “overkill” is a lot cheaper than “site visit”.</p><h2 id="the-server-or-i-refuse-to-install-a-framework">The server, or: I refuse to install a framework</h2>
+<p>The other half of the project is where the data lands. I already had a bare-PHP endpoint, and I looked at the options  Laravel, a Node service, InfluxDB plus Grafana, one of the dedicated IoT platforms  and then I just… didn’t. It’s one small table of readings and a devices table. SQLite in WAL mode handles that without breaking a sweat, the whole database is one file I can <code>scp</code> off the box, and there is no daemon to babysit.</p><p>So: bare PHP 7.4, PDO, SQLite, and a single ingest endpoint that returns <code>{&quot;status&quot;:&quot;ok&quot;}</code>. That response contract matters more than it looks  the firmware doesn’t just check the HTTP status, it reads the body, because I have personally been burned by reverse proxies that return <code>200 OK</code> with an application error page. If the body contains the word <code>error</code>, the node counts it as a failure and backs off. If it’s empty or says <code>ok</code>, success. Simple, and it has never once misfired.</p><p>For the dashboard I made a decision I’m slightly embarrassed by and also completely committed to: it looks like the WordPress 5.x admin panel. The 2020 one. Dark <code>#23282d</code> sidebar, <code>#0073aa</code> blue, white cards with a 1px border and that tiny box-shadow, 13px text. I spent an hour looking at sleek Tailwind dashboards and realized I didn’t want sleek, I wanted <em>legible at 7am on a phone while half awake</em>, and WordPress admin is exactly that. No CSS framework. One hand-written stylesheet. Chart.js from a CDN for the graphs. The whole frontend is maybe 400 lines of CSS and I know what every one of them does.</p><p>There’s a health page that flags the things I actually care about  device offline more than 30 minutes, heap minimum below 10 KB, a reset reason containing “Exception” or “Watchdog”, reconnect storms  and a raw log that keeps the original JSON of every reading, which is the single most useful debugging feature in the whole project.</p><h2 id="first-boot">First boot</h2>
+<p>Flashed it, pointed it at the server, opened the device’s own web page. The memory report from the build had been reassuring:</p><pre><code>RAM:    45% used
+Flash:  29% used   ← plenty of room for OTA
+IRAM:   92% used  ← looks scary, is normal; the WiFi stack reserves it
+</code></pre>
+<p>And the live dashboard, 52 seconds after boot:</p><pre><code>WiFi:      Connected, -67 dBm, channel 3
+Heap:      40,344 free / 40,256 lowest ever
+Uploads:   3/3 OK, 0 failures
+Boot:      1   WiFi reconnects: 1
+</code></pre>
+<p>The heap-lowest being 88 bytes below the current value is the number I’m proudest of. That’s not a memory budget, that’s a flat line. No leak, no fragmentation, nothing creeping. Whatever this thing does for the next six months, that number should stay right there.</p><p>Everything that can go wrong in the first minute didn’t. The state machine connected, the backoff logic armed itself and went to sleep, the spike filter saw 32 clean samples and rejected nothing, and the server accepted every packet and rendered it in its little WordPress cosplay.</p><p>And the temperature read <strong>50.7°C</strong>.</p><h2 id="the-sensor-is-lying-to-me">The sensor is lying to me</h2>
+<p>In a room. A room that is, generously, 24 degrees.</p><p>Here’s the thing about building all of this: the firmware is, I think, genuinely good. The math checks out  ADC raw 781 converts to about 59°C before the calibration offset, exactly what the dashboard shows, so the code is telling the truth. It’s the <em>world</em> that’s wrong. Either the thermistor is thermally coupled to the ESP8266 or its voltage regulator (both run warm, and inside any kind of enclosure the ambient can easily climb 25°C above the room), or my series resistor isn’t actually 10k, or the calibration offset I carried over from the original sketch is garbage. Probably the first one.</p><p>So the project is in the funniest possible state: an industrial-grade reliability stack  non-blocking state machines, exponential backoff, watchdog feeding, heap guards, spike rejection, zero flash wear  wrapped around a sensor that is confidently reporting sauna conditions. The software was the easy part. The software is <em>done</em>. Now I get to do the actual engineering, which is putting a real thermometer next to the probe, waiting ten minutes, and admitting that physics doesn’t care about my <code>snprintf</code>.</p><p>I’ll fix the offset this weekend. The shed can wait  it’s apparently a shed with a very reliable 50-degree thermometer in it, which is more than I could say a month ago.</p><p>If you’re building something similar, the one thing I’d tell you is this: assume the device will be unreachable, assume the WiFi is worse than you think, assume every <code>String</code> is a small time bomb, and assume the sensor is lying until proven otherwise. The first three are software problems with known answers. The last one is why hardware people drink.</p><p><em>Code’s on GitHub. <a href="https://github.com/mrxehmad/esp-weather-station">Link</a>, The calibration fix will be too, eventually.</em></p>
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>Local Hostname Resolution Setup  &#x60;h1.ehmi.se&#x60;</title>
+        <author>
+            <name>Ehmad</name>
+        </author>
+        <link href="https://ehmi.se/blog/local-hostname-resolution-setup-h1ehmise/"/>
+        <id>https://ehmi.se/blog/local-hostname-resolution-setup-h1ehmise/</id>
+        <media:content url="https://ehmi.se/blog/media/posts/55/Screenshot-385-2.png" medium="image" />
+            <category term="mdns"/>
+            <category term="dns"/>
+
+        <updated>2026-04-26T19:31:54+05:00</updated>
+            <summary>
+                <![CDATA[
+                        <img src="https://ehmi.se/blog/media/posts/55/Screenshot-385-2.png" alt="adguard-dns-ehmi.se" />
+                    Router: OpenWrt (homerouter) Date: April 2026 The goal was to resolve local hostnames in the format {hostname}.h1.ehmi.se across the network (e.g. auron.h1.ehmi.se → 10.1.0.2). This was incorrectly referred to as “mDNS” but is actually local unicast DNS resolution using the existing DNS infrastructure. Client └──▶&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                    <p><img src="https://ehmi.se/blog/media/posts/55/Screenshot-385-2.png" class="type:primaryImage" alt="adguard-dns-ehmi.se" /></p>
+                <p><strong>Router:</strong> OpenWrt (<code>homerouter</code>)<br><strong>Date:</strong> April 2026  </p><hr>
+<h2 id="overview">Overview</h2>
+<p>The goal was to resolve local hostnames in the format <code>{hostname}.h1.ehmi.se</code> across the network (e.g. <code>auron.h1.ehmi.se</code> → <code>10.1.0.2</code>). This was incorrectly referred to as “mDNS” but is actually <strong>local unicast DNS resolution</strong> using the existing DNS infrastructure.</p><figure class="post__image"><img loading="lazy" src="https://ehmi.se/blog/media/posts/55/Screenshot-385.png" alt="Image description" width="1920" height="1080" sizes="(max-width: 1920px) 100vw, 1920px" srcset="https://ehmi.se/blog/media/posts/55/responsive/Screenshot-385-xs.webp 640w ,https://ehmi.se/blog/media/posts/55/responsive/Screenshot-385-sm.webp 768w ,https://ehmi.se/blog/media/posts/55/responsive/Screenshot-385-md.webp 1024w ,https://ehmi.se/blog/media/posts/55/responsive/Screenshot-385-lg.webp 1366w ,https://ehmi.se/blog/media/posts/55/responsive/Screenshot-385-xl.webp 1600w ,https://ehmi.se/blog/media/posts/55/responsive/Screenshot-385-2xl.webp 1920w"></figure><hr>
+<h2 id="network-topology">Network Topology</h2>
+<pre><code>Client
+  └──▶ Pihole (10.1.1.5)          — primary DNS, ad blocking
+         └──▶ AdGuard (10.1.1.2)  — secondary DNS
+               └──▶ dnsmasq (10.1.1.1) — router, knows all local hosts
+                     └──▶ Internet (upstream)
+</code></pre>
+<h3 id="subnets">Subnets</h3>
+<table>
+<thead>
+<tr>
+<th>Network</th>
+<th>Interface</th>
+<th>Subnet</th>
+<th>Gateway</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>trusted</td>
+<td>br-trusted</td>
+<td>10.1.0.0/24</td>
+<td>10.1.0.1</td>
+</tr>
+<tr>
+<td>mgmt</td>
+<td>br-mgmt</td>
+<td>10.1.1.0/24</td>
+<td>10.1.1.1</td>
+</tr>
+</tbody></table>
+<h3 id="dns-servers">DNS Servers</h3>
+<table>
+<thead>
+<tr>
+<th>Server</th>
+<th>IP</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>dnsmasq</td>
+<td>10.1.1.1</td>
+<td>Router DNS, knows local hosts</td>
+</tr>
+<tr>
+<td>AdGuard</td>
+<td>10.1.1.2</td>
+<td>Secondary DNS</td>
+</tr>
+<tr>
+<td>Pihole</td>
+<td>10.1.1.5</td>
+<td>Primary DNS, ad blocking</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="problem">Problem</h2>
+<p>Clients could not resolve local hostnames like <code>auron.h1.ehmi.se</code>. All DNS traffic was hijacked by a firewall rule to go to Pihole, but Pihole had no knowledge of local hosts.</p><hr>
+<h2 id="changes-made">Changes Made</h2>
+<h3 id="1-openwrt--dnsmasq-etcconfigdhcp">1. OpenWrt — dnsmasq (<code>/etc/config/dhcp</code>)</h3>
+<p>Configured dnsmasq to serve the <code>h1.ehmi.se</code> domain and auto-expand hostnames from existing DHCP host entries.</p><pre><code class="language-bash">uci set dhcp.@dnsmasq[0].local=&#39;/h1.ehmi.se/&#39;
+uci set dhcp.@dnsmasq[0].domain=&#39;h1.ehmi.se&#39;
+uci commit dhcp
+service dnsmasq restart
+</code></pre>
+<p><strong>Effect:</strong> dnsmasq now answers <code>auron.h1.ehmi.se → 10.1.0.2</code> automatically from the static host entries already defined in <code>/etc/config/dhcp</code>.</p><hr>
+<h3 id="2-pihole--conditional-forwarding">2. Pihole — Conditional Forwarding</h3>
+<p>Told Pihole to forward all <code>h1.ehmi.se</code> queries to dnsmasq on the router instead of trying to resolve them itself.</p><p><strong>Location:</strong> Pihole Admin → Settings → DNS → Advanced → Reverse servers</p><pre><code>true,10.1.0.0/24,10.1.1.1,h1.ehmi.se
+</code></pre>
+<p><strong>Effect:</strong> Pihole now correctly returns <code>10.1.0.2</code> for <code>auron.h1.ehmi.se</code> instead of returning its own IP (<code>10.1.1.5</code>).</p><hr>
+<h3 id="3-adguard--upstream-dns-rule">3. AdGuard — Upstream DNS Rule</h3>
+<p>Told AdGuard to forward all <code>h1.ehmi.se</code> queries to dnsmasq on the router.</p><p><strong>Location:</strong> AdGuard Admin → Settings → DNS settings → Upstream DNS servers</p><pre><code>[/h1.ehmi.se/]10.1.1.1
+</code></pre>
+<p><strong>Effect:</strong> AdGuard now correctly returns <code>10.1.0.2</code> for <code>auron.h1.ehmi.se</code>.</p><hr>
+<h2 id="verification">Verification</h2>
+<p>All three DNS servers now return the correct answer:</p><pre><code>nslookup auron.h1.ehmi.se 10.1.1.1   →  10.1.0.2  ✅  (dnsmasq)
+nslookup auron.h1.ehmi.se 10.1.1.5   →  10.1.0.2  ✅  (Pihole)
+nslookup auron.h1.ehmi.se 10.1.1.2   →  10.1.0.2  ✅  (AdGuard)
+nslookup auron.h1.ehmi.se            →  10.1.0.2  ✅  (default DNS)
+</code></pre>
+<hr>
+<h2 id="how-it-works-flow">How It Works (Flow)</h2>
+<pre><code>Client asks: &quot;where is auron.h1.ehmi.se?&quot;
+        ↓
+DNS Hijack firewall rule → Pihole (10.1.1.5)
+        ↓
+Pihole: &quot;h1.ehmi.se is forwarded to 10.1.1.1&quot;
+        ↓
+dnsmasq on router: &quot;auron is in my host list → 10.1.0.2&quot;
+        ↓
+Client gets: 10.1.0.2 ✅
+</code></pre>
+<hr>
+<h2 id="existing-host-entries-from-etcconfigdhcp">Existing Host Entries (from <code>/etc/config/dhcp</code>)</h2>
+<p>These are automatically resolvable as <code>{name}.h1.ehmi.se</code>:</p><table>
+<thead>
+<tr>
+<th>Hostname</th>
+<th>IP</th>
+<th>MAC</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>birdy</td>
+<td>10.1.1.5</td>
+<td>00:80:64:DD:16:13</td>
+</tr>
+<tr>
+<td>auron</td>
+<td>10.1.0.2</td>
+<td>6c:29:95:b7:fd:31</td>
+</tr>
+<tr>
+<td>Pixel-6-pro</td>
+<td>10.1.0.3</td>
+<td>dc:e5:5b:eb:0c:30</td>
+</tr>
+<tr>
+<td>DESKTOP-O05GPKT</td>
+<td>10.1.0.4</td>
+<td>54:bf:64:61:45:55</td>
+</tr>
+<tr>
+<td>ESP-DC8109</td>
+<td>10.1.0.6</td>
+<td>ec:64:c9:dc:81:09</td>
+</tr>
+<tr>
+<td>Tenda-AP</td>
+<td>10.1.0.7</td>
+<td>08:40:f3:49:46:f0</td>
+</tr>
+<tr>
+<td>jack</td>
+<td>10.1.0.21</td>
+<td>54:67:06:8a:ed:25</td>
+</tr>
+<tr>
+<td>nadal</td>
+<td>10.1.0.48</td>
+<td>c8:b1:cd:9d:59:38</td>
+</tr>
+</tbody></table>
+<p><em>(and many more defined in the router config)</em></p><hr>
+<h2 id="what-this-is-not">What This Is NOT</h2>
+<p>This setup is <strong>not mDNS</strong>. The differences:</p><table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>mDNS</th>
+<th>This setup</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Protocol</td>
+<td>Multicast UDP</td>
+<td>Unicast DNS</td>
+</tr>
+<tr>
+<td>Domain</td>
+<td><code>.local</code> only</td>
+<td><code>h1.ehmi.se</code> (custom)</td>
+</tr>
+<tr>
+<td>Crosses VLANs</td>
+<td>❌ No</td>
+<td>✅ Yes</td>
+</tr>
+<tr>
+<td>Needs server</td>
+<td>❌ No (peer to peer)</td>
+<td>✅ Yes (dnsmasq)</td>
+</tr>
+<tr>
+<td>Works here</td>
+<td>Partial (same subnet only)</td>
+<td>✅ Fully working</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="notes">Notes</h2>
+<ul>
+<li>The DNS hijack firewall rule (<code>DNAT</code> on port 53) forces all clients to use Pihole regardless of their configured DNS. This is why both Pihole and AdGuard needed to be configured — depending on which server a query reaches first, it must know to forward <code>h1.ehmi.se</code> to dnsmasq.</li>
+<li>No changes were needed to client devices.</li>
+<li>Adding new hosts to <code>/etc/config/dhcp</code> on the router will automatically make them resolvable as <code>{name}.h1.ehmi.se</code> with no further changes needed.</li>
+</ul>
+
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>Implementing CVE Monitoring for Docker Containers Without Auto-Patching</title>
+        <author>
+            <name>Ehmad</name>
+        </author>
+        <link href="https://ehmi.se/blog/implementing-cve-monitoring-for-docker-containers-without-auto-patching/"/>
+        <id>https://ehmi.se/blog/implementing-cve-monitoring-for-docker-containers-without-auto-patching/</id>
+        <media:content url="https://ehmi.se/blog/media/posts/54/1712320809-open-source-container-security-tools-landscape.webp" medium="image" />
+            <category term="docker"/>
+            <category term="Devops"/>
+
+        <updated>2026-02-15T18:27:19+05:00</updated>
+            <summary>
+                <![CDATA[
+                        <img src="https://ehmi.se/blog/media/posts/54/1712320809-open-source-container-security-tools-landscape.webp" alt="Docker Containers" />
+                    Executive Summary Production environments require a delicate balance between security and stability. While automated patching can introduce breaking changes, ignoring vulnerabilities creates risk exposure. This article presents a pragmatic approach to monitoring Docker container vulnerabilities that alerts you to new CVEs without automatically updating your&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                    <p><img src="https://ehmi.se/blog/media/posts/54/1712320809-open-source-container-security-tools-landscape.webp" class="type:primaryImage" alt="Docker Containers" /></p>
+                <h2 id="executive-summary">Executive Summary</h2>
+<p>Production environments require a delicate balance between security and stability. While automated patching can introduce breaking changes, ignoring vulnerabilities creates risk exposure. This article presents a pragmatic approach to monitoring Docker container vulnerabilities that alerts you to new CVEs without automatically updating your production workloads.</p><h2 id="the-problem-space">The Problem Space</h2>
+<p>You’re running multiple Docker containers in production. One has a known CVE. The traditional approach is either continuous manual checking or automated patching. Manual checking doesn’t scale and misses critical vulnerabilities. Automated patching can break production systems during updates.</p><p>What you need is a middle path: automated detection with manual remediation control.</p><h2 id="solution-architecture">Solution Architecture</h2>
+<figure class="post__image"><img loading="lazy" src="https://ehmi.se/blog/media/posts/54/1712320809-open-source-container-security-tools-landscape-2.webp" alt="Docker CVE Workflow" width="1600" height="900" sizes="(max-width: 1920px) 100vw, 1920px" srcset="https://ehmi.se/blog/media/posts/54/responsive/1712320809-open-source-container-security-tools-landscape-2-xs.webp 640w ,https://ehmi.se/blog/media/posts/54/responsive/1712320809-open-source-container-security-tools-landscape-2-sm.webp 768w ,https://ehmi.se/blog/media/posts/54/responsive/1712320809-open-source-container-security-tools-landscape-2-md.webp 1024w ,https://ehmi.se/blog/media/posts/54/responsive/1712320809-open-source-container-security-tools-landscape-2-lg.webp 1366w ,https://ehmi.se/blog/media/posts/54/responsive/1712320809-open-source-container-security-tools-landscape-2-xl.webp 1600w ,https://ehmi.se/blog/media/posts/54/responsive/1712320809-open-source-container-security-tools-landscape-2-2xl.webp 1920w"></figure><h3 id="high-level-design">High-Level Design</h3>
+<p>The monitoring system operates in three stages:</p><p><strong>Stage 1: Vulnerability Scanning</strong>
+A vulnerability scanner examines your container images against continuously updated CVE databases. This happens on a schedule you define.</p><p><strong>Stage 2: Change Detection</strong>
+The system compares current scan results against previous scans, identifying newly discovered vulnerabilities. This prevents alert fatigue from known issues.</p><p><strong>Stage 3: Notification</strong>
+When new vulnerabilities appear, the system sends alerts through your chosen channel with sufficient detail for triage and remediation planning.</p><h3 id="technology-stack">Technology Stack</h3>
+<p><strong>Trivy</strong> serves as the vulnerability scanner. Developed by Aqua Security, it’s open-source, actively maintained, and covers multiple vulnerability databases including NVD, Red Hat, Debian, Ubuntu, and Alpine security advisories.</p><p><strong>Comparison Engine</strong> tracks scan results over time. A simple implementation uses JSON file storage with diff logic. Production systems might use Redis or a lightweight database.</p><p><strong>Notification Layer</strong> integrates with your existing alerting infrastructure. Options include Slack webhooks, email via SMTP, PagerDuty API, or custom webhooks.</p><h2 id="implementation-details">Implementation Details</h2>
+<h3 id="scanner-container-setup">Scanner Container Setup</h3>
+<p>The scanner runs as a separate container with access to the Docker socket. This allows it to enumerate and scan your running containers without requiring installation on the host system.</p><p>Required capabilities:</p><ul>
+<li>Read access to Docker socket</li>
+<li>Volume mount for persistent storage of scan results</li>
+<li>Network access to pull vulnerability database updates</li>
+</ul>
+<p>Security considerations:</p><ul>
+<li>Docker socket access is privileged; isolate the scanner container</li>
+<li>Use read-only socket access where possible</li>
+<li>Consider running on a schedule rather than continuously</li>
+</ul>
+<h3 id="scanning-strategy">Scanning Strategy</h3>
+<p>Two scanning approaches exist:</p><p><strong>Runtime Container Scanning</strong>
+Scans currently running containers by connecting to the Docker daemon. Advantages include seeing exactly what’s running in production. Disadvantages include missing containers that aren’t currently active.</p><p><strong>Image Registry Scanning</strong>
+Scans images from your registry before deployment. Catches vulnerabilities earlier in the pipeline but may miss runtime-specific issues or configurations.</p><p>The optimal approach combines both: registry scanning during CI/CD and runtime scanning for production verification.</p><h3 id="change-detection-logic">Change Detection Logic</h3>
+<p>The comparison engine implements differential analysis:</p><ol>
+<li>Store each scan result with timestamp and unique identifier</li>
+<li>On new scan completion, load previous scan results</li>
+<li>Extract CVE identifiers from both scans</li>
+<li>Calculate set difference: new_cves = current_cves - previous_cves</li>
+<li>Filter by severity threshold</li>
+<li>Generate alert payload only for filtered new CVEs</li>
+</ol>
+<p>Critical implementation detail: Track CVEs by identifier, not by count. A container might have 50 known vulnerabilities, but you only care about the 2 new ones discovered today.</p><h3 id="severity-filtering">Severity Filtering</h3>
+<p>Trivy categorizes vulnerabilities by severity: CRITICAL, HIGH, MEDIUM, LOW, UNKNOWN.</p><p>Production monitoring typically uses one of these strategies:</p><p><strong>Conservative</strong>: Alert on CRITICAL only</p><ul>
+<li>Lowest noise</li>
+<li>Highest risk of missing important vulnerabilities</li>
+<li>Suitable for mature, well-maintained images</li>
+</ul>
+<p><strong>Balanced</strong>: Alert on CRITICAL and HIGH</p><ul>
+<li>Industry standard approach</li>
+<li>Manageable alert volume</li>
+<li>Appropriate for most production environments</li>
+</ul>
+<p><strong>Aggressive</strong>: Alert on MEDIUM and above</p><ul>
+<li>High alert volume</li>
+<li>Comprehensive coverage</li>
+<li>Suitable for high-security environments or new deployments</li>
+</ul>
+<h3 id="notification-payload-design">Notification Payload Design</h3>
+<p>Effective alerts include:</p><ul>
+<li>Container name and image tag</li>
+<li>Number of new vulnerabilities by severity</li>
+<li>CVE identifiers with brief descriptions</li>
+<li>Links to full CVE details</li>
+<li>Affected packages and available fixed versions</li>
+<li>Timestamp of detection</li>
+</ul>
+<p>Avoid including full scan dumps in notifications. Provide summary data with links to detailed reports.</p><h2 id="operational-considerations">Operational Considerations</h2>
+<h3 id="scan-frequency">Scan Frequency</h3>
+<p>Daily scanning balances timeliness with resource consumption. Critical infrastructure might scan every 6 hours. Less critical systems can scan weekly.</p><p>The vulnerability database updates frequently, but new CVEs affecting your specific containers appear less often. Start with daily scans and adjust based on your alert volume.</p><h3 id="state-management">State Management</h3>
+<p>Scan results must persist between runs. Three approaches:</p><p><strong>File-based storage</strong>: Simple JSON files on mounted volumes. Suitable for single-scanner deployments.</p><p><strong>Redis</strong>: In-memory storage with persistence. Good for distributed scanning or integration with existing Redis infrastructure.</p><p><strong>Database</strong>: PostgreSQL or similar. Overkill for basic monitoring but useful if building comprehensive security tooling.</p><h3 id="alert-fatigue-prevention">Alert Fatigue Prevention</h3>
+<p>Implement these mechanisms to maintain signal-to-noise ratio:</p><p><strong>Deduplication</strong>: Don’t alert on the same CVE multiple times if it persists across scans.</p><p><strong>Severity thresholds</strong>: Configure minimum severity levels per container based on risk profile.</p><p><strong>Grouped notifications</strong>: Batch multiple new CVEs into single alert rather than separate messages per CVE.</p><p><strong>Quiet periods</strong>: Suppress alerts during maintenance windows or known update periods.</p><h3 id="integration-with-update-workflow">Integration with Update Workflow</h3>
+<p>The monitoring system feeds into your update process:</p><ol>
+<li>Alert fires for new CVE</li>
+<li>Security team triages severity and exploitability</li>
+<li>Update scheduled based on risk assessment</li>
+<li>Testing in staging environment</li>
+<li>Controlled production rollout</li>
+<li>Verification scan confirms vulnerability remediation</li>
+</ol>
+<p>This workflow maintains control while ensuring timely response to genuine threats.</p><h2 id="production-deployment-pattern">Production Deployment Pattern</h2>
+<h3 id="isolated-scanner-container">Isolated Scanner Container</h3>
+<p>Run the scanner in its own container, separate from application workloads. This isolation prevents scanner issues from affecting production services and allows independent scaling.</p><p>Resource allocation: Scanning is CPU and memory intensive during execution but idle between scans. Allocate resources based on image size and number of containers.</p><h3 id="scheduling">Scheduling</h3>
+<p>Use cron-style scheduling within the scanner container or external orchestration. Kubernetes CronJobs work well for containerized environments.</p><p>Schedule during low-traffic periods to minimize resource contention. Early morning hours typically work for most applications.</p><h3 id="monitoring-the-monitor">Monitoring the Monitor</h3>
+<p>Implement health checks for the scanner itself:</p><ul>
+<li>Successful database updates</li>
+<li>Scan completion within expected timeframes</li>
+<li>Notification delivery confirmation</li>
+<li>Storage capacity monitoring</li>
+</ul>
+<p>The security tool must be reliable to provide security value.</p><h2 id="security-implications-of-the-scanner">Security Implications of the Scanner</h2>
+<p>The scanner requires privileged access to function effectively. This creates its own security considerations:</p><p><strong>Docker Socket Access</strong>: Reading the Docker socket allows container enumeration and image inspection. Limit this access strictly to the scanner container. Never expose the socket to untrusted containers.</p><p><strong>Credential Management</strong>: If scanning private registries, the scanner needs authentication credentials. Use Docker secrets or environment variables, never hardcode credentials.</p><p><strong>Network Segmentation</strong>: The scanner pulls vulnerability databases from external sources. Ensure appropriate network policies allow this while restricting other traffic.</p><h2 id="advanced-patterns">Advanced Patterns</h2>
+<h3 id="multi-environment-monitoring">Multi-Environment Monitoring</h3>
+<p>Scan development, staging, and production separately. Development might alert on all severities to catch issues early. Production focuses on CRITICAL and HIGH to reduce noise.</p><h3 id="compliance-reporting">Compliance Reporting</h3>
+<p>Extend the system to generate compliance reports. Many frameworks require demonstrating vulnerability management processes. Store historical scan data and generate reports showing:</p><ul>
+<li>Time to remediation for discovered vulnerabilities</li>
+<li>Current vulnerability posture</li>
+<li>Trend analysis over time</li>
+</ul>
+<h3 id="integration-with-cicd">Integration with CI/CD</h3>
+<p>Shift left by scanning during build process. Fail builds that introduce CRITICAL vulnerabilities. This prevents vulnerable containers from reaching production entirely.</p><p>The runtime scanning then serves as verification and catches vulnerabilities discovered after deployment.</p><h2 id="alternative-approaches">Alternative Approaches</h2>
+<h3 id="docker-scout">Docker Scout</h3>
+<p>Docker’s native vulnerability scanning service. Advantages include tight integration with Docker tooling and minimal setup. Disadvantages include requiring Docker subscription for team features and less flexibility in customization.</p><h3 id="grype">Grype</h3>
+<p>Anchore’s scanner, similar to Trivy in capability. Well-documented and actively maintained. Choice between Trivy and Grype often comes down to team preference and existing tooling.</p><h3 id="clair">Clair</h3>
+<p>CoreOS project now maintained by Quay team. More complex setup but integrates well with Quay registry. Suitable for organizations heavily invested in Red Hat ecosystem.</p><h3 id="commercial-solutions">Commercial Solutions</h3>
+<p>Snyk, Aqua Security, Prisma Cloud offer comprehensive platforms including vulnerability scanning, runtime protection, and compliance features. These provide more capabilities but come with licensing costs and vendor lock-in.</p><h2 id="implementation-checklist">Implementation Checklist</h2>
+<p>Before deploying to production:</p><ul>
+<li><input disabled="" type="checkbox"> Scanner container built and tested</li>
+<li><input disabled="" type="checkbox"> Docker socket access configured with minimal permissions</li>
+<li><input disabled="" type="checkbox"> Vulnerability database updates successfully</li>
+<li><input disabled="" type="checkbox"> Scan results storage configured and tested</li>
+<li><input disabled="" type="checkbox"> Change detection logic validated with test data</li>
+<li><input disabled="" type="checkbox"> Notification channel configured and tested</li>
+<li><input disabled="" type="checkbox"> Severity filtering tuned to prevent alert fatigue</li>
+<li><input disabled="" type="checkbox"> Scanning schedule defined based on risk tolerance</li>
+<li><input disabled="" type="checkbox"> Documentation created for responding to alerts</li>
+<li><input disabled="" type="checkbox"> Update workflow integrated with existing change management</li>
+<li><input disabled="" type="checkbox"> Scanner monitoring and health checks in place</li>
+<li><input disabled="" type="checkbox"> Team trained on interpreting alerts and taking action</li>
+</ul>
+<h2 id="measuring-success">Measuring Success</h2>
+<p>Track these metrics to validate the monitoring system:</p><p><strong>Mean Time to Detection (MTTD)</strong>: How quickly new CVEs are identified after publication. Should align with your scan frequency.</p><p><strong>Mean Time to Remediation (MTTR)</strong>: How quickly vulnerabilities are patched after detection. This measures your response process, not the scanner.</p><p><strong>False Positive Rate</strong>: How often alerts require no action. High rates indicate severity filtering needs adjustment.</p><p><strong>Coverage</strong>: Percentage of containers regularly scanned. Should be 100% for production workloads.</p><h2 id="conclusion">Conclusion</h2>
+<p>Automated CVE monitoring without auto-patching gives you security visibility while maintaining operational control. The key is implementing reliable detection, effective filtering to prevent alert fatigue, and integration with your existing update workflow.</p><p>Start simple with basic Trivy scanning and file-based storage. Iterate based on your specific needs and alert volume. The goal is sustainable security monitoring that your team actually acts on, not a perfect system that generates too much noise to be useful.</p><p>Security is a process, not a state. This monitoring system provides the information needed to make informed decisions about when and how to update production containers. The control remains yours, but you’re no longer operating blind to emerging vulnerabilities.</p>
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>Accidentally Pushing Credentials to GitHub: A Technical Post-Mortem</title>
+        <author>
+            <name>Ehmad</name>
+        </author>
+        <link href="https://ehmi.se/blog/accidentally-pushing-credentials-to-github-a-technical-post-mortem/"/>
+        <id>https://ehmi.se/blog/accidentally-pushing-credentials-to-github-a-technical-post-mortem/</id>
+        <media:content url="https://ehmi.se/blog/media/posts/53/Screenshot-2026-02-15-181737.png" medium="image" />
+            <category term="tutorial"/>
+            <category term="deployment"/>
+            <category term="Devops"/>
+
+        <updated>2026-02-15T18:20:58+05:00</updated>
+            <summary>
+                <![CDATA[
+                        <img src="https://ehmi.se/blog/media/posts/53/Screenshot-2026-02-15-181737.png" alt="github commits" />
+                    A Deep Dive into Git Secret Exposure, Recovery, and Prevention A production environment’s .env file containing sensitive credentials was accidentally committed and pushed to a public GitHub repository. What seemed like a straightforward fix quickly escalated into a multi-layered incident affecting production services and requiring&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                    <p><img src="https://ehmi.se/blog/media/posts/53/Screenshot-2026-02-15-181737.png" class="type:primaryImage" alt="github commits" /></p>
+                <p><strong>A Deep Dive into Git Secret Exposure, Recovery, and Prevention</strong></p><hr>
+<h2 id="the-incident">The Incident</h2>
+<p>A production environment’s <code>.env</code> file containing sensitive credentials was accidentally committed and pushed to a public GitHub repository. What seemed like a straightforward fix quickly escalated into a multi-layered incident affecting production services and requiring coordinated remediation across multiple systems.</p><p>This post-mortem examines the technical details, cascading failures, and systemic improvements needed to prevent similar incidents.</p><hr>
+<h2 id="what-went-wrong">What Went Wrong</h2>
+<h3 id="primary-failure-missing-gitignore-entry">Primary Failure: Missing <code>.gitignore</code> Entry</h3>
+<p>The root cause was deceptively simple—the <code>.env</code> file wasn’t excluded from version control. Despite being a well-known best practice, this configuration gap allowed sensitive credentials to enter the repository.</p><p><strong>Exposed Data:</strong></p><ul>
+<li>Database connection strings and passwords</li>
+<li>API authentication keys  </li>
+<li>JWT signing secrets</li>
+<li>Third-party service tokens</li>
+</ul>
+<h3 id="secondary-failure-template-file-contamination">Secondary Failure: Template File Contamination</h3>
+<p>During remediation efforts, a second exposure was discovered: the <code>.env.example</code> file contained actual production credentials instead of placeholder values. This meant two separate files in the repository history contained live credentials.</p><h3 id="tertiary-failure-deployment-hook-design">Tertiary Failure: Deployment Hook Design</h3>
+<p>The production deployment system used a post-receive Git hook with this critical line:</p><pre><code class="language-bash">git --work-tree=$TARGET --git-dir=$GIT_DIR checkout -f $BRANCH
+</code></pre>
+<p>The <code>-f</code> flag force-overwrites the working directory. When data files were removed from Git tracking during cleanup, the deployment hook deleted them from production, causing service disruption.</p><hr>
+<h2 id="the-recovery-process">The Recovery Process</h2>
+<h3 id="phase-1-immediate-credential-rotation-priority-one">Phase 1: Immediate Credential Rotation (Priority One)</h3>
+<p>The first action was rotating all exposed credentials:</p><ul>
+<li>Database passwords regenerated</li>
+<li>API keys revoked and replaced</li>
+<li>JWT secrets rotated</li>
+<li>Service authentication tokens refreshed</li>
+</ul>
+<p><strong>Critical Insight:</strong> Removing files from Git doesn’t remove credentials from the internet. Any exposed secret must be treated as permanently compromised, regardless of how quickly it’s removed from the repository.</p><h3 id="phase-2-history-rewriting">Phase 2: History Rewriting</h3>
+<p>Removing the current file isn’t enough—the credentials exist in every commit where they appeared. Git’s immutable history means they’re accessible through:</p><ul>
+<li>Commit history (<code>git log</code>)</li>
+<li>GitHub’s cached views</li>
+<li>Search engine indexing</li>
+<li>Third-party Git mirrors</li>
+</ul>
+<p><strong>Tool Selection:</strong> <code>git-filter-repo</code></p><p>While several tools can rewrite Git history, <code>git-filter-repo</code> was chosen for its safety features and performance:</p><pre><code class="language-bash"># Installation
+pip install git-filter-repo
+
+# Remove sensitive files from entire history
+git-filter-repo --path .env --invert-paths --force
+git-filter-repo --path .env.example --invert-paths --force
+</code></pre>
+<p><strong>Critical Gotcha:</strong> <code>git-filter-repo</code> removes all remotes as a safety measure to prevent accidental pushes. Remotes must be manually re-added before pushing.</p><h3 id="phase-3-multi-remote-coordination">Phase 3: Multi-Remote Coordination</h3>
+<p>The repository had two remotes:</p><ul>
+<li><code>origin</code> - GitHub (public)</li>
+<li><code>production</code> - Bare repository on production server</li>
+</ul>
+<p>History rewriting had to be coordinated across both:</p><pre><code class="language-bash"># Re-add remotes after filter-repo
+git remote add origin git@github.com:user/repo.git
+git remote add production user@server:~/repo.git
+
+# Force push to both
+git push --force origin --all
+git push --force production --all
+</code></pre>
+<h3 id="phase-4-production-data-recovery">Phase 4: Production Data Recovery</h3>
+<p>The deployment triggered by the force push exposed a critical flaw in the deployment hook. Production data files that were removed from Git tracking were also deleted from the filesystem.</p><p><strong>Files Lost:</strong></p><ul>
+<li><code>known_devices.json</code> - Device tracking database</li>
+<li><code>device_database.json</code> - Device metadata</li>
+<li><code>debug.log</code> - Application logs</li>
+<li><code>blacklisted.json</code> - Security blocklist</li>
+<li><code>requests.json</code> - Request history</li>
+</ul>
+<p><strong>Recovery Method:</strong></p><p>These files still existed in Git history before cleanup. They were restored using:</p><pre><code class="language-bash"># Find the last commit containing the files
+git log --all --oneline -- known_devices.json | head -1
+
+# Restore from that commit
+git checkout &lt;commit-hash&gt; -- known_devices.json device_database.json debug.log blacklisted.json requests.json
+
+# Fix permissions
+chown www-data:www-data *.json *.log
+chmod 644 *.json *.log
+</code></pre>
+<h3 id="phase-5-deployment-hook-remediation">Phase 5: Deployment Hook Remediation</h3>
+<p>The post-receive hook was rewritten to preserve untracked files during deployment:</p><pre><code class="language-bash">#!/bin/bash
+TARGET=&quot;/var/www/app&quot;
+GIT_DIR=&quot;$HOME/app.git&quot;
+BRANCH=&quot;main&quot;
+
+while read oldrev newrev ref
+do
+  if [[ $ref = refs/heads/$BRANCH ]]; then
+    echo &quot;Deploying to production...&quot;
+    
+    # Backup data files before checkout
+    cd $TARGET
+    cp -f known_devices.json known_devices.json.bak 2&gt;/dev/null || true
+    cp -f device_database.json device_database.json.bak 2&gt;/dev/null || true
+    cp -f debug.log debug.log.bak 2&gt;/dev/null || true
+    cp -f blacklisted.json blacklisted.json.bak 2&gt;/dev/null || true
+    cp -f requests.json requests.json.bak 2&gt;/dev/null || true
+    
+    # Deploy code
+    git --work-tree=$TARGET --git-dir=$GIT_DIR checkout -f $BRANCH
+    
+    # Restore data files if deleted by checkout
+    [ ! -f known_devices.json ] &amp;&amp; mv -f known_devices.json.bak known_devices.json 2&gt;/dev/null || true
+    [ ! -f device_database.json ] &amp;&amp; mv -f device_database.json.bak device_database.json 2&gt;/dev/null || true
+    [ ! -f debug.log ] &amp;&amp; mv -f debug.log.bak debug.log 2&gt;/dev/null || true
+    [ ! -f blacklisted.json ] &amp;&amp; mv -f blacklisted.json.bak blacklisted.json 2&gt;/dev/null || true
+    [ ! -f requests.json ] &amp;&amp; mv -f requests.json.bak requests.json 2&gt;/dev/null || true
+    
+    # Cleanup
+    rm -f *.bak
+    
+    # Fix permissions
+    chown www-data:www-data $TARGET/*.json $TARGET/*.log 2&gt;/dev/null || true
+    chmod 644 $TARGET/*.json $TARGET/*.log 2&gt;/dev/null || true
+    chown www-data:www-data $TARGET/.env 2&gt;/dev/null || true
+    chmod 600 $TARGET/.env 2&gt;/dev/null || true
+    
+    echo &quot;Deployment complete!&quot;
+  fi
+done
+</code></pre>
+<hr>
+<h2 id="technical-lessons">Technical Lessons</h2>
+<h3 id="1-git-history-is-immutable-until-it-isnt">1. Git History Is Immutable (Until It Isn’t)</h3>
+<p>Git’s design philosophy treats history as immutable, which is excellent for collaboration but catastrophic for secrets. Once committed, credentials are:</p><ul>
+<li>Permanently in history until explicitly removed</li>
+<li>Replicated to all clones</li>
+<li>Potentially cached by GitHub</li>
+<li>Possibly indexed by search engines</li>
+</ul>
+<p><strong>The Fix:</strong> History rewriting is possible but destructive. It changes all commit hashes, breaks existing clones, and requires force-pushing—a coordinated operation that can’t be done quietly.</p><h3 id="2-gitignore-is-not-retroactive">2. <code>.gitignore</code> Is Not Retroactive</h3>
+<p>Adding <code>.env</code> to <code>.gitignore</code> after it’s been committed does nothing. The file remains in history. <code>.gitignore</code> only affects future operations.</p><p><strong>Correct Workflow:</strong></p><pre><code class="language-bash"># Add to .gitignore FIRST
+echo &quot;.env&quot; &gt;&gt; .gitignore
+git add .gitignore
+git commit -m &quot;ignore environment files&quot;
+
+# THEN create .env
+touch .env
+# File is now ignored
+</code></pre>
+<h3 id="3-template-files-need-sanitization">3. Template Files Need Sanitization</h3>
+<p><code>.env.example</code> files serve as templates for other developers. They should contain:</p><pre><code class="language-bash"># WRONG - Real credentials
+DB_PASSWORD=MyActualPassword123
+API_KEY=sk_live_abc123xyz789
+
+# RIGHT - Placeholders
+DB_PASSWORD=your_secure_password_here
+API_KEY=your_api_key_here
+</code></pre>
+<h3 id="4-deployment-hooks-must-account-for-state">4. Deployment Hooks Must Account for State</h3>
+<p>Git tracks code, not state. Production systems often have files that shouldn’t be in Git:</p><ul>
+<li>User-uploaded content</li>
+<li>Generated caches</li>
+<li>Runtime logs</li>
+<li>Session data</li>
+<li>Application-managed databases</li>
+</ul>
+<p>Deployment scripts that blindly overwrite the working directory will destroy this state.</p><p><strong>Better Approaches:</strong></p><p><strong>Option A:</strong> Separate state directory</p><pre><code class="language-bash">/var/www/app/        # Git-managed code
+/var/www/app-data/   # Application state
+</code></pre>
+<p><strong>Option B:</strong> Explicit exclusions</p><pre><code class="language-bash"># Only checkout tracked files, preserve untracked
+git checkout -f $BRANCH
+</code></pre>
+<p><strong>Option C:</strong> Backup and restore (shown above)</p><h3 id="5-multi-remote-force-push-coordination">5. Multi-Remote Force Push Coordination</h3>
+<p>When pushing to multiple remotes, history must be synchronized:</p><pre><code class="language-bash"># This creates divergent histories (BAD)
+git push --force origin main
+# Make more changes
+git push --force production main
+
+# This keeps them synchronized (GOOD)
+git push --force origin main
+git push --force production main
+# Both remotes now have identical history
+</code></pre>
+<h3 id="6-file-ownership-in-deployment-hooks">6. File Ownership in Deployment Hooks</h3>
+<p>The deployment hook runs as the SSH user, but web files need different ownership:</p><pre><code class="language-bash"># Wrong - Files owned by deployment user
+git checkout -f $BRANCH
+
+# Right - Explicitly set ownership
+git checkout -f $BRANCH
+chown -R www-data:www-data $TARGET
+</code></pre>
+<hr>
+<h2 id="prevention-strategy">Prevention Strategy</h2>
+<h3 id="layer-1-pre-commit-prevention">Layer 1: Pre-Commit Prevention</h3>
+<p><strong>Git Hooks:</strong></p><p>Create <code>.git/hooks/pre-commit</code>:</p><pre><code class="language-bash">#!/bin/bash
+if git diff --cached --name-only | grep -E &#39;^\.env$|^\.env\..*&#39;; then
+    echo &quot;Error: Attempting to commit .env file&quot;
+    echo &quot;Add to .gitignore instead&quot;
+    exit 1
+fi
+</code></pre>
+<p>Make executable:</p><pre><code class="language-bash">chmod +x .git/hooks/pre-commit
+</code></pre>
+<p><strong>Automated Tools:</strong></p><ul>
+<li><strong>git-secrets</strong> - Scans for patterns matching credentials</li>
+<li><strong>detect-secrets</strong> - Pre-commit hook for secret detection</li>
+<li><strong>gitleaks</strong> - SAST tool for hardcoded secrets</li>
+</ul>
+<h3 id="layer-2-repository-configuration">Layer 2: Repository Configuration</h3>
+<p><strong>Comprehensive <code>.gitignore</code>:</strong></p><pre><code class="language-bash"># Environment files
+.env
+.env.*
+!.env.example
+
+# Application state
+*.log
+*.json
+!package.json
+!composer.json
+
+# Server configuration
+.htaccess
+php.ini
+
+# Uploads
+uploads/
+storage/
+
+# Caches
+cache/
+tmp/
+</code></pre>
+<p><strong>Branch Protection:</strong></p><p>Enable on GitHub:</p><ul>
+<li>Require pull request reviews</li>
+<li>Require status checks</li>
+<li>Restrict force pushes</li>
+<li>Require signed commits</li>
+</ul>
+<h3 id="layer-3-secrets-management">Layer 3: Secrets Management</h3>
+<p><strong>Never Store Secrets in Git:</strong></p><p>Use dedicated secret management:</p><ul>
+<li><strong>HashiCorp Vault</strong> - Enterprise secret storage</li>
+<li><strong>AWS Secrets Manager</strong> - Cloud-native secrets</li>
+<li><strong>Azure Key Vault</strong> - Microsoft ecosystem</li>
+<li><strong>Google Secret Manager</strong> - GCP integration</li>
+</ul>
+<p><strong>Environment Variable Injection:</strong></p><pre><code class="language-bash"># Deploy-time injection
+export DB_PASSWORD=$(vault read -field=password secret/db)
+php artisan serve
+</code></pre>
+<h3 id="layer-4-monitoring-and-detection">Layer 4: Monitoring and Detection</h3>
+<p><strong>GitHub Scanning:</strong></p><ul>
+<li>Enable GitHub secret scanning (free for public repos)</li>
+<li>Configure custom patterns for proprietary secrets</li>
+<li>Set up notifications for detected secrets</li>
+</ul>
+<p><strong>Audit Logging:</strong></p><p>Monitor for:</p><ul>
+<li>Unexpected credential usage from new IPs</li>
+<li>API key usage spikes</li>
+<li>Failed authentication attempts</li>
+<li>Credential rotation events</li>
+</ul>
+<h3 id="layer-5-incident-response-preparation">Layer 5: Incident Response Preparation</h3>
+<p><strong>Runbook for Credential Exposure:</strong></p><ol>
+<li><p><strong>Immediate (0-5 minutes)</strong></p><ul>
+<li>Rotate all exposed credentials</li>
+<li>Verify rotation completed successfully</li>
+<li>Monitor for unauthorized access</li>
+</ul>
+</li>
+<li><p><strong>Short-term (5-30 minutes)</strong></p><ul>
+<li>Assess scope of exposure</li>
+<li>Check logs for credential usage</li>
+<li>Notify stakeholders if needed</li>
+</ul>
+</li>
+<li><p><strong>Medium-term (30 minutes - 2 hours)</strong></p><ul>
+<li>Remove from Git history</li>
+<li>Force push to all remotes</li>
+<li>Verify removal from GitHub cache</li>
+</ul>
+</li>
+<li><p><strong>Long-term (2+ hours)</strong></p><ul>
+<li>Review security logs for 30 days</li>
+<li>Conduct post-mortem</li>
+<li>Implement additional controls</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h2 id="architecture-improvements">Architecture Improvements</h2>
+<h3 id="separate-deployment-from-state">Separate Deployment from State</h3>
+<p><strong>Before:</strong></p><pre><code>/var/www/app/
+├── .env                  # Mixed: config
+├── index.php             # Deployed: code
+├── dashboard.php         # Deployed: code
+├── known_devices.json    # State: data
+└── requests.json         # State: data
+</code></pre>
+<p><strong>After:</strong></p><pre><code>/var/www/app/             # Git-deployed code only
+├── index.php
+├── dashboard.php
+└── includes/
+
+/var/www/app-config/      # Server-managed config
+├── .env
+└── config.php
+
+/var/www/app-data/        # Application state
+├── known_devices.json
+├── requests.json
+└── logs/
+</code></pre>
+<p>Update application to load from separate paths:</p><pre><code class="language-php">// Load config from separate directory
+$dotenv = Dotenv\Dotenv::createImmutable(&#39;/var/www/app-config&#39;);
+$dotenv-&gt;load();
+
+// Store data in separate directory
+$dataPath = &#39;/var/www/app-data/&#39;;
+</code></pre>
+<h3 id="production-only-files-strategy">Production-Only Files Strategy</h3>
+<p>For files that must exist in production but not GitHub:</p><p><strong>Option A: Template + Manual Creation</strong></p><pre><code class="language-bash"># In repo: .env.example
+DB_HOST=localhost
+DB_NAME=database_name
+DB_PASSWORD=your_password_here
+
+# On server: Copy and fill
+cp .env.example .env
+nano .env  # Fill with real values
+</code></pre>
+<p><strong>Option B: Injection Script</strong></p><pre><code class="language-bash">#!/bin/bash
+# deploy-inject-config.sh
+
+# Create .env from secure storage
+cat &gt; /var/www/app/.env &lt;&lt; EOF
+DB_HOST=$(vault read -field=host secret/db)
+DB_NAME=$(vault read -field=name secret/db)
+DB_PASSWORD=$(vault read -field=password secret/db)
+EOF
+
+chmod 600 /var/www/app/.env
+chown www-data:www-data /var/www/app/.env
+</code></pre>
+<p>Add to post-receive hook:</p><pre><code class="language-bash"># After checkout
+git --work-tree=$TARGET --git-dir=$GIT_DIR checkout -f $BRANCH
+
+# Inject config
+bash $HOME/deploy-inject-config.sh
+</code></pre>
+<hr>
+<h2 id="the-cost-of-this-incident">The Cost of This Incident</h2>
+<h3 id="time-investment">Time Investment</h3>
+<ul>
+<li><strong>Detection to rotation:</strong> 10 minutes</li>
+<li><strong>Total remediation:</strong> 60 minutes</li>
+<li><strong>Documentation:</strong> 120 minutes</li>
+<li><strong>Process improvements:</strong> 180 minutes</li>
+</ul>
+<p><strong>Total:</strong> ~6 hours of engineering time</p><h3 id="service-impact">Service Impact</h3>
+<ul>
+<li><strong>Downtime:</strong> 60 minutes</li>
+<li><strong>Degraded service:</strong> 30 minutes</li>
+<li><strong>User impact:</strong> All production users</li>
+</ul>
+<h3 id="security-impact">Security Impact</h3>
+<ul>
+<li><strong>Credential exposure window:</strong> 15-30 minutes</li>
+<li><strong>Rotation completed:</strong> Yes</li>
+<li><strong>Unauthorized access detected:</strong> No</li>
+<li><strong>Long-term monitoring:</strong> Ongoing</li>
+</ul>
+<hr>
+<h2 id="key-takeaways">Key Takeaways</h2>
+<ol>
+<li><p><strong>Secrets in Git are permanently exposed</strong> - History rewriting is complex, risky, and doesn’t guarantee the secret wasn’t already harvested.</p></li>
+<li><p><strong>Credential rotation is non-negotiable</strong> - Even if you remove credentials from Git in 30 seconds, treat them as compromised.</p></li>
+<li><p><strong>Deployment automation needs safety rails</strong> - Hooks that blindly overwrite filesystems will eventually destroy production state.</p></li>
+<li><p><strong>Prevention is cheaper than remediation</strong> - A pre-commit hook takes 5 minutes to implement; this incident consumed 6 hours.</p></li>
+<li><p><strong>Template files need the same security rigor</strong> - <code>.env.example</code> with real credentials is just as dangerous as <code>.env</code>.</p></li>
+<li><p><strong>Multi-layer security is essential</strong> - No single control prevents this incident. Pre-commit hooks, <code>.gitignore</code>, secret scanning, and proper architecture all contribute.</p></li>
+<li><p><strong>State and code should be separated</strong> - Mixing deployed code with runtime state creates deployment complexity and data loss risks.</p></li>
+<li><p><strong>Force push operations require planning</strong> - When rewriting history across multiple remotes, coordination prevents divergent histories and lost work.</p></li>
+</ol>
+<hr>
+<h2 id="conclusion">Conclusion</h2>
+<p>This incident demonstrates how a simple configuration oversight can cascade into a complex, multi-system remediation effort. The mistake wasn’t just committing the <code>.env</code> file—it was the absence of defensive layers that would have prevented or quickly caught the error.</p><p>Modern development requires defense in depth:</p><ul>
+<li><strong>Prevent:</strong> Pre-commit hooks, gitignore templates, secret scanning</li>
+<li><strong>Detect:</strong> GitHub secret scanning, audit logs, monitoring</li>
+<li><strong>Respond:</strong> Runbooks, rotation procedures, communication plans</li>
+<li><strong>Recover:</strong> Backup strategies, deployment safety, state management</li>
+</ul>
+<p>The best incident is the one that never happens. Invest in prevention now, because credential rotation at 2 AM is significantly more expensive than a 5-minute pre-commit hook setup.</p><hr>
+<p><strong>Resources:</strong></p><ul>
+<li><a href="https://github.com/newren/git-filter-repo">git-filter-repo documentation</a></li>
+<li><a href="https://docs.github.com/en/code-security/secret-scanning">GitHub Secret Scanning</a></li>
+<li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html">OWASP Secrets Management Cheat Sheet</a></li>
+<li><a href="https://12factor.net/config">The Twelve-Factor App: Config</a></li>
+</ul>
+<hr>
+<p><em>This post-mortem is shared for educational purposes. The technical details and lessons learned are real.</em></p>
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>WebAssembly</title>
+        <author>
+            <name>Ehmad</name>
+        </author>
+        <link href="https://ehmi.se/blog/webassembly-or-what-is-webassembly/"/>
+        <id>https://ehmi.se/blog/webassembly-or-what-is-webassembly/</id>
+            <category term="tutorial"/>
+            <category term="deployment"/>
+            <category term="Devops"/>
+
+        <updated>2026-01-22T15:30:21+05:00</updated>
+            <summary>
+                <![CDATA[
+                    WebAssembly (Wasm) is a modern, powerful technology that’s very much alive and growing! It’s quite different from Java Applets and ClickOnce - think of it as a way to run near-native speed code directly in your web browser. WebAssembly is a binary instruction format that&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                <p><strong>WebAssembly (Wasm)</strong> is a modern, powerful technology that’s very much alive and growing! It’s quite different from Java Applets and ClickOnce - think of it as a way to run near-native speed code directly in your web browser.</p><h2 id="what-is-webassembly">What is WebAssembly?</h2>
+<p>WebAssembly is a binary instruction format that runs in modern web browsers alongside JavaScript. It allows you to compile code from languages like C, C++, Rust, C#, and others to run at near-native speed in the browser.</p><h2 id="key-features">Key Features:</h2>
+<ul>
+<li><strong>Fast execution</strong> - Near-native performance (much faster than JavaScript for compute-heavy tasks)</li>
+<li><strong>Safe</strong> - Runs in the same sandbox as JavaScript</li>
+<li><strong>Cross-platform</strong> - Works in all modern browsers (Chrome, Firefox, Safari, Edge)</li>
+<li><strong>Language agnostic</strong> - Write in C++, Rust, C#, Go, etc., compile to Wasm</li>
+<li><strong>Works with JavaScript</strong> - Can call JavaScript functions and vice versa</li>
+</ul>
+<h2 id="real-world-examples-you-can-try-right-now">Real-World Examples You Can Try Right Now:</h2>
+<p>Let me find some publicly available WebAssembly applications:Perfect! Here are <strong>publicly available WebAssembly applications</strong> you can try right now:</p><h2 id="🎮-live-webassembly-demos-you-can-use">🎮 Live WebAssembly Demos You Can Use:</h2>
+<h3 id="1-figma---httpswwwfigmacom"><strong>1. Figma</strong> - <a href="https://www.figma.com">https://www.figma.com</a></h3>
+<p>Design tool that uses WebAssembly to achieve native-like desktop app performance in the browser</p><h3 id="2-google-earth---httpsearthgooglecomweb"><strong>2. Google Earth</strong> - <a href="https://earth.google.com/web/">https://earth.google.com/web/</a></h3>
+<p>Runs entirely in the browser powered by WebAssembly</p><h3 id="3-autocad-web---httpswebautocadcom"><strong>3. AutoCAD Web</strong> - <a href="https://web.autocad.com/">https://web.autocad.com/</a></h3>
+<p>AutoCAD’s 35-year-old C++ application compiled to WebAssembly for the web</p><h3 id="4-sandspiel---httpssandspielclub"><strong>4. Sandspiel</strong> - <a href="https://sandspiel.club/">https://sandspiel.club/</a></h3>
+<p>A falling sand game written in Rust/WebAssembly with around 2 million monthly page views</p><h3 id="5-qt-webassembly-demos---httpswwwqtioqt-examples-for-webassembly"><strong>5. Qt WebAssembly Demos</strong> - <a href="https://www.qt.io/qt-examples-for-webassembly">https://www.qt.io/qt-examples-for-webassembly</a></h3>
+<p>Interactive demos including sprite drawing apps with menus, toolbars, save/load functionality, and 3D showcases</p><h3 id="6-felgo-wasm-demos---httpsfelgocomtry-wasm"><strong>6. Felgo WASM Demos</strong> - <a href="https://felgo.com/try-wasm/">https://felgo.com/try-wasm/</a></h3>
+<p>Includes weather apps, games like OneCard, and UI showcases that run directly in your browser</p><h3 id="7-made-with-webassembly---httpsmadewithwebassemblycom"><strong>7. Made With WebAssembly</strong> - <a href="https://madewithwebassembly.com/">https://madewithwebassembly.com/</a></h3>
+<p>A showcase featuring production apps including uBlock Origin browser extension, OpenCascade CAD library, and PDF editors</p><h2 id="quick-comparison-webassembly-vs-others">Quick Comparison: WebAssembly vs Others</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>WebAssembly</th>
+<th>Java Applets</th>
+<th>ClickOnce</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Status</strong></td>
+<td>✅ Active &amp; growing</td>
+<td>❌ Dead (2017)</td>
+<td>⚠️ Declining</td>
+</tr>
+<tr>
+<td><strong>Platform</strong></td>
+<td>All browsers</td>
+<td>Java plugin</td>
+<td>Windows only</td>
+</tr>
+<tr>
+<td><strong>Performance</strong></td>
+<td>Near-native speed</td>
+<td>Moderate</td>
+<td>Native</td>
+</tr>
+<tr>
+<td><strong>Security</strong></td>
+<td>Sandboxed</td>
+<td>Vulnerable</td>
+<td>Sandboxed</td>
+</tr>
+<tr>
+<td><strong>Languages</strong></td>
+<td>C++, Rust, C#, Go, etc.</td>
+<td>Java only</td>
+<td>.NET only</td>
+</tr>
+<tr>
+<td><strong>Installation</strong></td>
+<td>None needed</td>
+<td>Plugin required</td>
+<td>Desktop install</td>
+</tr>
+</tbody></table>
+<h2 id="why-webassembly-is-winning">Why WebAssembly is Winning:</h2>
+<ol>
+<li><strong>No plugins needed</strong> - runs natively in modern browsers</li>
+<li><strong>Fast</strong> - near-native performance for compute-heavy tasks</li>
+<li><strong>Secure</strong> - sandboxed execution</li>
+<li><strong>Universal</strong> - works on desktop, mobile, all platforms</li>
+<li><strong>Multi-language</strong> - write in your preferred language</li>
+</ol>
+<p>Try visiting <strong>Figma</strong> or <strong>Google Earth</strong> right now - they’re full production apps running WebAssembly in your browser!</p><p>Would you like me to show you how to create your own simple WebAssembly app?</p><p><strong>What this demo shows:</strong></p><ul>
+<li>Real-time pixel manipulation (grayscale, invert, blur, pixelate effects)</li>
+<li>Processing hundreds of thousands of pixels in milliseconds</li>
+<li>Performance metrics showing processing time</li>
+<li>The kind of operations where WebAssembly shines</li>
+</ul>
+<p><strong>Try the filters</strong> - click the buttons to see instant image processing!</p><hr>
+<h2 id="want-to-see-real-webassembly-code">Want to See REAL WebAssembly Code?</h2>
+<p>Here’s what actual Rust → WebAssembly code looks like:## How to Build &amp; Use This:</p><p><strong>1. Install Rust &amp; wasm-pack:</strong></p><pre><code class="language-bash">curl --proto &#39;=https&#39; --tlsv1.2 -sSf https://sh.rustup.rs | sh
+cargo install wasm-pack
+</code></pre>
+<p><strong>2. Create project:</strong></p><pre><code class="language-bash">cargo new --lib my-wasm-project
+cd my-wasm-project
+</code></pre>
+<p><strong>3. Add to Cargo.toml:</strong></p><pre><code class="language-toml">[lib]
+crate-type = [&quot;cdylib&quot;]
+
+[dependencies]
+wasm-bindgen = &quot;0.2&quot;
+</code></pre>
+<p><strong>4. Build:</strong></p><pre><code class="language-bash">wasm-pack build --target web
+</code></pre>
+<p><strong>5. Use in HTML:</strong></p><pre><code class="language-html">&lt;script type=&quot;module&quot;&gt;
+    import init, { grayscale } from &#39;./pkg/my_wasm_project.js&#39;;
+    
+    await init();
+    
+    // Now you can call the Rust function!
+    const imageData = ctx.getImageData(0, 0, 800, 600);
+    grayscale(imageData.data);
+    ctx.putImageData(imageData, 0, 0);
+&lt;/script&gt;
+</code></pre>
+<p>The beauty of WebAssembly is that this Rust code runs at <strong>near-native C++ speed</strong> in your browser - typically 10-20x faster than equivalent JavaScript for compute-heavy tasks!</p>
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>Fixing Traefik v3 Encoded Character Blocking with Pi-hole</title>
+        <author>
+            <name>Ehmad</name>
+        </author>
+        <link href="https://ehmi.se/blog/fixing-traefik-v3-encoded-character-blocking-with-pi-hole/"/>
+        <id>https://ehmi.se/blog/fixing-traefik-v3-encoded-character-blocking-with-pi-hole/</id>
+        <media:content url="https://ehmi.se/blog/media/posts/51/Screenshot-2025-12-25-125520.png" medium="image" />
+            <category term="tutorial"/>
+            <category term="Devops"/>
+
+        <updated>2025-12-25T12:54:35+05:00</updated>
+            <summary>
+                <![CDATA[
+                        <img src="https://ehmi.se/blog/media/posts/51/Screenshot-2025-12-25-125520.png" alt="traefik path documantation" />
+                    If you’re running Pi-hole behind Traefik v3 as a reverse proxy, you may encounter a frustrating error when trying to manage regex-based domain blocking rules. The Pi-hole web interface returns a 400 Bad Request error, and your Traefik logs show messages like: Rejecting request because&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                    <p><img src="https://ehmi.se/blog/media/posts/51/Screenshot-2025-12-25-125520.png" class="type:primaryImage" alt="traefik path documantation" /></p>
+                <p>If you’re running Pi-hole behind Traefik v3 as a reverse proxy, you may encounter a frustrating error when trying to manage regex-based domain blocking rules. The Pi-hole web interface returns a 400 Bad Request error, and your Traefik logs show messages like:</p><pre><code>Rejecting request because it contains encoded character %5C in the URL path: /api/domains/deny/regex/(%5E%7C%5C.)(cn)%24
+Rejecting request because it contains encoded character %3F in the URL path: /api/domains/deny/regex/(%3Fi)vpn
+</code></pre>
+<p>This happens when you try to enable, disable, or modify domain groups that contain regex patterns in Pi-hole’s admin interface.</p><figure class="post__image"><img loading="lazy" src="https://ehmi.se/blog/media/posts/51/Screenshot-2025-12-25-125856.png" alt="traefik dashboard" width="1898" height="989" sizes="(max-width: 1920px) 100vw, 1920px" srcset="https://ehmi.se/blog/media/posts/51/responsive/Screenshot-2025-12-25-125856-xs.webp 640w ,https://ehmi.se/blog/media/posts/51/responsive/Screenshot-2025-12-25-125856-sm.webp 768w ,https://ehmi.se/blog/media/posts/51/responsive/Screenshot-2025-12-25-125856-md.webp 1024w ,https://ehmi.se/blog/media/posts/51/responsive/Screenshot-2025-12-25-125856-lg.webp 1366w ,https://ehmi.se/blog/media/posts/51/responsive/Screenshot-2025-12-25-125856-xl.webp 1600w ,https://ehmi.se/blog/media/posts/51/responsive/Screenshot-2025-12-25-125856-2xl.webp 1920w"></figure><h2 id="why-does-this-happen">Why Does This Happen?</h2>
+<p>Traefik v3 introduced a security feature that blocks HTTP requests containing certain URL-encoded characters in the path. This is designed to prevent path traversal attacks and other security vulnerabilities. The blocked characters include:</p><ul>
+<li><code>%2F</code> - Forward slash (/)</li>
+<li><code>%5C</code> - Backslash ()</li>
+<li><code>%00</code> - Null character</li>
+<li><code>%3B</code> - Semicolon (;)</li>
+<li><code>%25</code> - Percent (%)</li>
+<li><code>%3F</code> - Question mark (?)</li>
+<li><code>%23</code> - Hash (#)</li>
+</ul>
+<p>Pi-hole’s API uses regex patterns for domain blocking, and these patterns often contain special characters like <code>(?i)</code> for case-insensitive matching or <code>\.</code> for literal dots. When the Pi-hole web interface sends these patterns to the API, they’re URL-encoded (e.g., <code>\</code> becomes <code>%5C</code>, <code>?</code> becomes <code>%3F</code>).</p><p>Traefik v3 sees these encoded characters and rejects the request before it even reaches Pi-hole, resulting in the 400 error.</p><h2 id="the-investigation">The Investigation</h2>
+<p>The issue becomes clear when comparing direct access to Pi-hole versus access through Traefik:</p><p><strong>Works (Direct HTTP access):</strong></p><pre><code class="language-bash">curl &#39;http://10.1.15.10:8000/api/domains/deny/regex/(%5E%7C%5C.)(cn)%24&#39; \
+  -X PUT \
+  -H &#39;Content-Type: application/json&#39; \
+  --data-raw &#39;{&quot;groups&quot;:[0,1,2,3],&quot;comment&quot;:&quot;cn stuff&quot;,&quot;enabled&quot;:true,&quot;type&quot;:&quot;deny&quot;,&quot;kind&quot;:&quot;regex&quot;}&#39;
+</code></pre>
+<p><strong>Fails (Through Traefik HTTPS):</strong></p><pre><code class="language-bash">curl &#39;https://pihole.example.com/api/domains/deny/regex/(%5E%7C%5C.)(cn)%24&#39; \
+  -X PUT \
+  -H &#39;Content-Type: application/json&#39; \
+  --data-raw &#39;{&quot;groups&quot;:[0,1,2,3],&quot;comment&quot;:&quot;cn stuff&quot;,&quot;enabled&quot;:true,&quot;type&quot;:&quot;deny&quot;,&quot;kind&quot;:&quot;regex&quot;}&#39;
+</code></pre>
+<p>The URL encoding is identical in both cases, confirming that Traefik is the culprit, not the client or Pi-hole.</p><h2 id="the-solution">The Solution</h2>
+<p>Traefik v3.2 and later versions include configuration options to allow specific encoded characters. You need to modify your Traefik static configuration file.</p><h3 id="step-1-update-your-traefikyaml">Step 1: Update Your traefik.yaml</h3>
+<p>Add the <code>encodedCharacters</code> configuration under your HTTPS entrypoint. This configuration was introduced in Traefik v3.2 and allows you to selectively permit encoded characters in URL paths.</p><p><strong>Reference:</strong> <a href="https://doc.traefik.io/traefik/routing/entrypoints/#requestpath">Traefik Documentation - Request Path</a></p><pre><code class="language-yaml">entryPoints:
+  web:
+    address: &quot;:80&quot;
+  websecure:
+    address: &quot;:443&quot;
+    http3: {}
+    http:
+      encodedCharacters:
+        allowEncodedSlash: true          # %2F - Forward slash
+        allowEncodedBackSlash: true      # %5C - Backslash (Required for Pi-hole)
+        allowEncodedNullCharacter: true  # %00 - Null character
+        allowEncodedSemicolon: true      # %3B - Semicolon
+        allowEncodedPercent: true        # %25 - Percent sign
+        allowEncodedQuestionMark: true   # %3F - Question mark (Required for Pi-hole)
+        allowEncodedHash: true           # %23 - Hash/pound sign
+
+api:
+  dashboard: true
+  insecure: true
+
+providers:
+  docker:
+    exposedByDefault: false
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+certificatesResolvers:
+  cloudflare:
+    acme:
+      email: your-email@example.com
+      storage: /letsencrypt/acme.json
+      dnsChallenge:
+        provider: cloudflare
+        delayBeforeCheck: 90
+        resolvers:
+          - &quot;1.1.1.1:53&quot;
+          - &quot;1.0.0.1:53&quot;
+
+log:
+  level: INFO
+</code></pre>
+<p><strong>Important:</strong> The most critical settings for Pi-hole are:</p><ul>
+<li><code>allowEncodedBackSlash: true</code> - Required for <code>\</code> in regex patterns</li>
+<li><code>allowEncodedQuestionMark: true</code> - Required for <code>?</code> in regex patterns like <code>(?i)</code></li>
+</ul>
+<p>All seven encoded character options are needed to fully support Pi-hole’s regex functionality.</p><h3 id="step-2-verify-your-pi-hole-dynamic-configuration">Step 2: Verify Your Pi-hole Dynamic Configuration</h3>
+<p>Your Pi-hole dynamic configuration (<code>pihole.yaml</code>) should remain simple:</p><pre><code class="language-yaml">http:
+  middlewares:
+    https-redirect:
+      redirectScheme:
+        scheme: https
+        permanent: true
+
+  routers:
+    pihole-redirect:
+      rule: &quot;Host(`pihole.example.com`)&quot;
+      entryPoints:
+        - web
+      middlewares:
+        - https-redirect
+      service: noop@internal
+    
+    pihole:
+      rule: &quot;Host(`pihole.example.com`)&quot;
+      entryPoints:
+        - websecure
+      service: pihole
+      tls:
+        certResolver: cloudflare
+
+  services:
+    pihole:
+      loadBalancer:
+        servers:
+          - url: &quot;http://pihole:80&quot;
+</code></pre>
+<h3 id="step-3-apply-the-changes">Step 3: Apply the Changes</h3>
+<p>Restart Traefik to apply the new configuration:</p><pre><code class="language-bash">docker restart traefik
+</code></pre>
+<p>Or if using docker-compose:</p><pre><code class="language-bash">docker-compose restart traefik
+</code></pre>
+<h3 id="step-4-verify-the-fix">Step 4: Verify the Fix</h3>
+<p>Check your Traefik logs to ensure the rejection messages are gone:</p><pre><code class="language-bash">docker logs traefik -f
+</code></pre>
+<p>You should no longer see messages like “Rejecting request because it contains encoded character”.</p><p>Test by trying to enable or disable a regex domain rule in Pi-hole’s web interface. It should now work without errors.</p><h2 id="important-security-considerations">Important Security Considerations</h2>
+<p>Allowing encoded characters reduces some of Traefik’s built-in security protections against path traversal and injection attacks. Consider these points:</p><ol>
+<li><strong>Understand the risks</strong>: Each allowed character opens a potential attack vector if your backend doesn’t properly validate input</li>
+<li><strong>Pi-hole validation</strong>: Pi-hole validates regex patterns, but ensure you’re running the latest version with security patches</li>
+<li><strong>Network segmentation</strong>: Keep your Pi-hole and Traefik on a trusted internal network, not directly exposed to the internet</li>
+<li><strong>Monitor logs</strong>: Regularly check Traefik and Pi-hole logs for suspicious activity</li>
+<li><strong>Regular updates</strong>: Keep both Traefik and Pi-hole updated to the latest versions</li>
+<li><strong>Alternative approach</strong>: If security is paramount, consider using the separate entrypoint method (see Alternative Solutions below) to limit the scope of allowed encoded characters</li>
+</ol>
+<h2 id="alternative-solutions">Alternative Solutions</h2>
+<p>If you prefer not to allow encoded characters globally, here are alternatives:</p><h3 id="option-1-create-a-separate-entrypoint-for-pi-hole">Option 1: Create a Separate Entrypoint for Pi-hole</h3>
+<pre><code class="language-yaml">entryPoints:
+  web:
+    address: &quot;:80&quot;
+  websecure:
+    address: &quot;:443&quot;
+    http3: {}
+  pihole-secure:
+    address: &quot;:8443&quot;
+    http3: {}
+    http:
+      encodedCharacters:
+        allowEncodedBackSlash: true
+        allowEncodedQuestionMark: true
+</code></pre>
+<p>Then update your Pi-hole router to use <code>pihole-secure</code> entrypoint and access Pi-hole at <code>https://pihole.example.com:8443</code>.</p><h3 id="option-2-use-nginx-as-an-intermediary">Option 2: Use Nginx as an Intermediary</h3>
+<p>Place an Nginx container between Traefik and Pi-hole:</p><pre><code class="language-nginx">server {
+    listen 8080;
+    location / {
+        proxy_pass http://pihole:80;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+</code></pre>
+<p>Point Traefik to Nginx instead of directly to Pi-hole.</p><h3 id="option-3-downgrade-to-traefik-v2">Option 3: Downgrade to Traefik v2</h3>
+<p>Traefik v2.11 doesn’t have this encoded character restriction and works with Pi-hole out of the box:</p><pre><code class="language-yaml">services:
+  traefik:
+    image: traefik:v2.11
+</code></pre>
+<h2 id="common-pitfalls">Common Pitfalls</h2>
+<h3 id="yaml-indentation-errors">YAML Indentation Errors</h3>
+<p>YAML is strict about indentation. Use spaces, not tabs. The <code>http:</code> section must be properly indented under <code>websecure:</code>:</p><pre><code class="language-yaml">websecure:
+  address: &quot;:443&quot;
+  http3: {}
+  http:              # Two spaces
+    encodedCharacters: # Four spaces
+      allowEncodedBackSlash: true # Six spaces
+</code></pre>
+<h3 id="configuration-not-loading">Configuration Not Loading</h3>
+<p>If you see “field not found, node: encodedPath” errors, you’re using an older Traefik version or incorrect syntax. The <code>encodedCharacters</code> configuration was introduced in Traefik v3.2. Check your version:</p><pre><code class="language-bash">docker exec traefik traefik version
+</code></pre>
+<h3 id="changes-not-taking-effect">Changes Not Taking Effect</h3>
+<p>After modifying <code>traefik.yaml</code>, you must restart Traefik. Simply reloading dynamic configuration isn’t enough for static configuration changes.</p><h2 id="testing-your-configuration">Testing Your Configuration</h2>
+<p>After applying the fix, test with a real curl command:</p><pre><code class="language-bash">curl &#39;https://pihole.example.com/api/domains/deny/regex/(%3Fi)vpn&#39; \
+  -X PUT \
+  -H &#39;Content-Type: application/json; charset=UTF-8&#39; \
+  -H &#39;Cookie: sid=YOUR_SESSION_ID&#39; \
+  -H &#39;X-CSRF-TOKEN: YOUR_CSRF_TOKEN&#39; \
+  --data-raw &#39;{&quot;groups&quot;:[0],&quot;comment&quot;:&quot;test&quot;,&quot;enabled&quot;:false,&quot;type&quot;:&quot;deny&quot;,&quot;kind&quot;:&quot;regex&quot;}&#39;
+</code></pre>
+<p>A successful response (200 OK) indicates the fix is working.</p><h2 id="conclusion">Conclusion</h2>
+<p>The encoded character blocking in Traefik v3 is a security feature that can interfere with legitimate applications like Pi-hole that use special characters in their API paths. By carefully configuring the <code>encodedCharacters</code> settings in your Traefik static configuration, you can allow Pi-hole to function properly while maintaining reasonable security.</p><p>Remember to only enable the specific encoded characters you need, keep your systems updated, and ensure your backend applications properly validate input.</p><h2 id="additional-resources">Additional Resources</h2>
+<ul>
+<li><a href="https://doc.traefik.io/traefik/">Traefik v3 Documentation</a></li>
+<li><a href="https://doc.traefik.io/traefik/routing/entrypoints/#requestpath">Traefik Request Path Documentation</a></li>
+<li><a href="https://docs.pi-hole.net/">Pi-hole Documentation</a></li>
+<li><a href="https://github.com/traefik/traefik">Traefik GitHub Repository</a></li>
+</ul>
+<hr>
+<p><em>Article last updated: December 2025 for Traefik v3.6.5 and Pi-hole v5</em> *</p>
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>Fixing UEFI Shell Boot Issues on Chromebook with MrChromebox Firmware</title>
+        <author>
+            <name>Ehmad</name>
+        </author>
+        <link href="https://ehmi.se/blog/fixing-uefi-shell-boot-issues-on-chromebook-with-mrchromebox-firmware/"/>
+        <id>https://ehmi.se/blog/fixing-uefi-shell-boot-issues-on-chromebook-with-mrchromebox-firmware/</id>
+
+        <updated>2025-12-20T10:43:24+05:00</updated>
+            <summary>
+                <![CDATA[
+                    If you’ve installed Debian 12 on your Chromebook using MrChromebox BIOS firmware and suddenly find yourself dropped into a UEFI shell instead of your operating system, don’t panic. This is a common issue that occurs when the UEFI firmware cannot locate the bootloader on your&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                <p>If you’ve installed Debian 12 on your Chromebook using MrChromebox BIOS firmware and suddenly find yourself dropped into a UEFI shell instead of your operating system, don’t panic. This is a common issue that occurs when the UEFI firmware cannot locate the bootloader on your SSD.</p><p>The error message typically indicates that the system is “booting from SSD” and asking you to “verify it contains 64bit UEFI OS.” This guide will walk you through both a quick temporary fix to boot your system immediately and a permanent solution to prevent this from happening again.</p><h2 id="understanding-the-problem">Understanding the Problem</h2>
+<p>When you see the UEFI shell, it means that the firmware has successfully detected your SSD but cannot find or execute the bootloader. This usually happens because:</p><ul>
+<li>The boot entry in NVRAM has been lost or corrupted</li>
+<li>The EFI partition is not properly configured</li>
+<li>GRUB bootloader files are missing or misconfigured</li>
+</ul>
+<h2 id="quick-temporary-fix-manual-boot-from-uefi-shell">Quick Temporary Fix: Manual Boot from UEFI Shell</h2>
+<p>This method will get you back into your Debian system right away without making any permanent changes.</p><h3 id="step-1-identify-your-drive">Step 1: Identify Your Drive</h3>
+<p>In the UEFI shell, type the following command to list all available filesystems:</p><pre><code>map
+</code></pre>
+<p>This will display a list of available drives. Look for your SSD, which is typically labeled as <code>FS0:</code> or <code>FS1:</code>. Make note of which filesystem corresponds to your installation drive.</p><h3 id="step-2-navigate-to-your-drive">Step 2: Navigate to Your Drive</h3>
+<p>Once you’ve identified your drive, navigate to it by typing:</p><pre><code>FS0:
+</code></pre>
+<p>Replace <code>FS0:</code> with whatever identifier corresponds to your SSD from the previous step.</p><h3 id="step-3-boot-the-system">Step 3: Boot the System</h3>
+<p>Now execute the GRUB bootloader manually:</p><pre><code>cd EFI\debian
+grubx64.efi
+</code></pre>
+<p>This should immediately boot your Debian installation. However, this is only a temporary solution, and you’ll need to repeat these steps every time you restart unless you apply the permanent fix below.</p><h2 id="permanent-solution-repair-boot-entry">Permanent Solution: Repair Boot Entry</h2>
+<p>Once you’ve successfully booted into Debian using the method above, follow these steps to permanently fix the boot configuration.</p><h3 id="step-1-check-current-boot-entries">Step 1: Check Current Boot Entries</h3>
+<p>Open a terminal and run:</p><pre><code class="language-bash">sudo efibootmgr -v
+</code></pre>
+<p>This command displays all boot entries stored in your system’s NVRAM. Review the output to see if a Debian entry exists and whether it’s pointing to the correct location.</p><h3 id="step-2-reinstall-grub">Step 2: Reinstall GRUB</h3>
+<p>Reinstall GRUB to recreate the proper boot entry:</p><pre><code class="language-bash">sudo grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=debian
+</code></pre>
+<p>This command installs the GRUB bootloader to your EFI partition and creates a new boot entry in NVRAM.</p><h3 id="step-3-update-grub-configuration">Step 3: Update GRUB Configuration</h3>
+<p>After reinstalling GRUB, update its configuration:</p><pre><code class="language-bash">sudo update-grub
+</code></pre>
+<p>This regenerates the GRUB configuration file with all available operating systems and kernel versions.</p><h3 id="step-4-reboot-and-test">Step 4: Reboot and Test</h3>
+<p>Restart your system to verify that it now boots correctly:</p><pre><code class="language-bash">sudo reboot
+</code></pre>
+<p>Your Chromebook should now boot directly into Debian without dropping into the UEFI shell.</p><h2 id="troubleshooting-efi-partition-issues">Troubleshooting: EFI Partition Issues</h2>
+<p>If the above steps don’t resolve your issue, the problem might be with your EFI partition mounting.</p><h3 id="check-if-efi-partition-is-mounted">Check if EFI Partition is Mounted</h3>
+<p>Run this command to check if your EFI partition is properly mounted:</p><pre><code class="language-bash">mount | grep efi
+</code></pre>
+<p>If you don’t see any output, your EFI partition is not mounted.</p><h3 id="mount-the-efi-partition">Mount the EFI Partition</h3>
+<p>Identify your EFI partition (usually the first partition on your drive):</p><pre><code class="language-bash">sudo fdisk -l
+</code></pre>
+<p>Look for a small partition (typically 100-500MB) with type “EFI System.”</p><p>Mount it manually:</p><pre><code class="language-bash">sudo mount /dev/sda1 /boot/efi
+</code></pre>
+<p>Note: Replace <code>/dev/sda1</code> with your actual EFI partition identifier from the fdisk output.</p><h3 id="retry-grub-installation">Retry GRUB Installation</h3>
+<p>Now that the EFI partition is mounted, repeat the GRUB installation steps:</p><pre><code class="language-bash">sudo grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=debian
+sudo update-grub
+</code></pre>
+<h2 id="prevention-make-efi-partition-mount-permanent">Prevention: Make EFI Partition Mount Permanent</h2>
+<p>To ensure your EFI partition always mounts at boot, verify it’s in your <code>/etc/fstab</code> file:</p><pre><code class="language-bash">cat /etc/fstab | grep efi
+</code></pre>
+<p>If there’s no entry, add one by editing the fstab file:</p><pre><code class="language-bash">sudo nano /etc/fstab
+</code></pre>
+<p>Add a line similar to:</p><pre><code>UUID=XXXX-XXXX  /boot/efi  vfat  umask=0077  0  1
+</code></pre>
+<p>Replace <code>XXXX-XXXX</code> with your EFI partition’s UUID, which you can find using:</p><pre><code class="language-bash">sudo blkid | grep vfat
+</code></pre>
+<h2 id="conclusion">Conclusion</h2>
+<p>The UEFI shell issue on Chromebooks running MrChromebox firmware is typically caused by missing or corrupted boot entries. By manually booting through the UEFI shell and then reinstalling GRUB from within Debian, you can restore proper boot functionality.</p><p>If you continue experiencing issues after following this guide, consider checking the MrChromebox community forums or the Chromebook-specific Linux communities for additional support related to your specific Chromebook model.</p>
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>Building a Unified Deployment Pipeline: Merging Three Applications into One Coherent Site</title>
+        <author>
+            <name>Ehmad</name>
+        </author>
+        <link href="https://ehmi.se/blog/building-a-unified-deployment-pipeline-merging-three-applications-into-one-coherent-site/"/>
+        <id>https://ehmi.se/blog/building-a-unified-deployment-pipeline-merging-three-applications-into-one-coherent-site/</id>
+        <media:content url="https://ehmi.se/blog/media/posts/49/Screenshot-2025-11-29-140413-2.png" medium="image" />
+            <category term="tutorial"/>
+            <category term="deployment"/>
+            <category term="Devops"/>
+
+        <updated>2025-11-29T14:07:29+05:00</updated>
+            <summary>
+                <![CDATA[
+                        <img src="https://ehmi.se/blog/media/posts/49/Screenshot-2025-11-29-140413-2.png" alt="Git repo mrxehmad ehmi-se-unified build" />
+                    This article documents the architectural decisions and implementation strategies employed in consolidating three distinct web applications. a Next.js portfolio, a React-based tools suite, and a Publii blog into a unified deployment pipeline. The solution leverages GitHub Actions for automated builds, Git submodules for modular component&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                    <p><img src="https://ehmi.se/blog/media/posts/49/Screenshot-2025-11-29-140413-2.png" class="type:primaryImage" alt="Git repo mrxehmad ehmi-se-unified build" /></p>
+                <p>This article documents the architectural decisions and implementation strategies employed in consolidating three distinct web applications. a Next.js portfolio, a React-based tools suite, and a Publii blog into a unified deployment pipeline. The solution leverages GitHub Actions for automated builds, Git submodules for modular component management, and Cloudflare Pages for hosting, whilst maintaining separation of concerns and independent development workflows.</p><h2 id="1-introduction">1. Introduction</h2>
+<p>Modern web development often necessitates the integration of multiple applications under a single domain, presenting unique challenges in build orchestration, routing, and deployment. This project addresses these challenges by implementing a streamlined continuous deployment workflow that preserves the autonomy of individual components whilst presenting them as a cohesive user experience.</p><h3 id="11-project-structure">1.1 Project Structure</h3>
+<p>The architecture comprises three principal components:</p><ul>
+<li><strong>Portfolio</strong> (<code>/</code>): A Next.js application serving as the primary landing page and professional showcase</li>
+<li><strong>Tools</strong> (<code>/tools</code>): A React single-page application providing utility features</li>
+<li><strong>Blog</strong> (<code>/blog</code>): A Publii-generated static blog with independent content management</li>
+</ul>
+<h2 id="2-technical-implementation">2. Technical Implementation</h2>
+<h3 id="21-repository-architecture">2.1 Repository Architecture</h3>
+<p>The project employs Git submodules to maintain independent repositories for each component, allowing for:</p><ul>
+<li>Isolated version control and commit history</li>
+<li>Independent development cycles</li>
+<li>Simplified testing and debugging</li>
+<li>Clear separation of concerns</li>
+</ul>
+<pre><code>main-site/
+├── portfolio/      (submodule)
+├── tools/          (submodule)
+└── blog/           (submodule, blog branch)
+</code></pre>
+<figure class="post__image"><img loading="lazy" src="https://ehmi.se/blog/media/posts/49/Screenshot-2025-11-29-140227.png" alt="Git repo mrxehmad ehmi-se-unified" width="1344" height="682" sizes="(max-width: 1920px) 100vw, 1920px" srcset="https://ehmi.se/blog/media/posts/49/responsive/Screenshot-2025-11-29-140227-xs.webp 640w ,https://ehmi.se/blog/media/posts/49/responsive/Screenshot-2025-11-29-140227-sm.webp 768w ,https://ehmi.se/blog/media/posts/49/responsive/Screenshot-2025-11-29-140227-md.webp 1024w ,https://ehmi.se/blog/media/posts/49/responsive/Screenshot-2025-11-29-140227-lg.webp 1366w ,https://ehmi.se/blog/media/posts/49/responsive/Screenshot-2025-11-29-140227-xl.webp 1600w ,https://ehmi.se/blog/media/posts/49/responsive/Screenshot-2025-11-29-140227-2xl.webp 1920w"></figure><h3 id="22-build-pipeline">2.2 Build Pipeline</h3>
+<p>The deployment workflow, triggered manually via GitHub Actions, executes the following sequence:</p><ol>
+<li><strong>Checkout Phase</strong>: Retrieves all repositories with their submodules, ensuring the blog submodule switches to its dedicated <code>blog</code> branch</li>
+<li><strong>Build Phase</strong>: Compiles both Node.js applications independently, with the tools application configured for a <code>/tools</code> base path</li>
+<li><strong>Integration Phase</strong>: Constructs a unified directory structure by copying built assets to their respective paths</li>
+<li><strong>Deployment Phase</strong>: Commits the compiled assets to a <code>production</code> branch, ready for hosting</li>
+</ol>
+<figure class="post__image"><img loading="lazy" src="https://ehmi.se/blog/media/posts/49/Screenshot-2025-11-29-140413.png" alt="Git repo mrxehmad ehmi-se-unified build" width="1358" height="487" sizes="(max-width: 1920px) 100vw, 1920px" srcset="https://ehmi.se/blog/media/posts/49/responsive/Screenshot-2025-11-29-140413-xs.webp 640w ,https://ehmi.se/blog/media/posts/49/responsive/Screenshot-2025-11-29-140413-sm.webp 768w ,https://ehmi.se/blog/media/posts/49/responsive/Screenshot-2025-11-29-140413-md.webp 1024w ,https://ehmi.se/blog/media/posts/49/responsive/Screenshot-2025-11-29-140413-lg.webp 1366w ,https://ehmi.se/blog/media/posts/49/responsive/Screenshot-2025-11-29-140413-xl.webp 1600w ,https://ehmi.se/blog/media/posts/49/responsive/Screenshot-2025-11-29-140413-2xl.webp 1920w"></figure><h3 id="23-routing-and-configuration">2.3 Routing and Configuration</h3>
+<p>Three critical configuration files manage site behaviour:</p><p><strong>robots.txt</strong>: Directs search engine crawlers to appropriate sitemaps for each section</p><p><strong>sitemap.xml</strong>: Provides a sitemap index coordinating discovery across all three applications</p><p><strong>_redirects</strong>: Handles legacy subdomain redirects and single-page application routing for the tools section</p><h2 id="3-key-design-decisions">3. Key Design Decisions</h2>
+<h3 id="31-submodule-strategy">3.1 Submodule Strategy</h3>
+<p>Rather than employing a monorepo approach, Git submodules were selected for their ability to maintain truly independent repositories. This proves particularly valuable when components require different deployment schedules or have distinct contributor teams.</p><h3 id="32-build-then-deploy-pattern">3.2 Build-Then-Deploy Pattern</h3>
+<p>The workflow performs all compilation in the CI environment rather than on the hosting platform. This approach offers several advantages:</p><ul>
+<li><strong>Predictability</strong>: Builds occur in a controlled environment with consistent dependencies</li>
+<li><strong>Flexibility</strong>: Different build tools and Node versions can be employed per component</li>
+<li><strong>Speed</strong>: The hosting platform simply serves pre-built assets without compilation overhead</li>
+<li><strong>Security</strong>: Build secrets and dependencies remain within the CI environment</li>
+</ul>
+<h3 id="33-branch-based-deployment">3.3 Branch-Based Deployment</h3>
+<p>Deploying to a dedicated <code>production</code> branch, rather than directly to <code>main</code>, provides:</p><ul>
+<li>Clean separation between source code and compiled assets</li>
+<li>Simplified hosting configuration (point to branch root)</li>
+<li>Ability to inspect deployed assets independently</li>
+<li>Protection of source branches from build artifacts</li>
+</ul>
+<h2 id="4-challenges-and-solutions">4. Challenges and Solutions</h2>
+<h3 id="41-spa-routing">4.1 SPA Routing</h3>
+<p>Single-page applications like the React tools require special routing considerations. The <code>_redirects</code> file instructs Cloudflare Pages to serve <code>index.html</code> for all <code>/tools/*</code> paths, enabling client-side routing whilst avoiding 404 errors.</p><h3 id="42-blog-branch-management">4.2 Blog Branch Management</h3>
+<p>The blog submodule maintains content on a separate <code>blog</code> branch to distinguish between Publii’s generated output and its configuration files. The workflow explicitly checks out this branch, ensuring the correct content is deployed.</p><h3 id="43-path-consistency">4.3 Path Consistency</h3>
+<p>React’s build process required configuration via the <code>PUBLIC_URL</code> environment variable to ensure asset paths reference <code>/tools</code> rather than the root. This prevents broken links and ensures proper resource loading.</p><h2 id="5-recommendations-and-best-practices">5. Recommendations and Best Practices</h2>
+<h3 id="51-for-similar-projects">5.1 For Similar Projects</h3>
+<p>If you’re considering a similar architecture, I’d advise:</p><ul>
+<li><strong>Start Simple</strong>: Begin with manual deployment to understand the full picture before automating</li>
+<li><strong>Test Independently</strong>: Ensure each component builds and runs correctly in isolation before integration</li>
+<li><strong>Document Paths</strong>: Maintain clear documentation of which files live where, particularly when using submodules</li>
+<li><strong>Version Lock</strong>: Pin Node versions and major dependencies to avoid unexpected build failures</li>
+</ul>
+<h3 id="52-potential-improvements">5.2 Potential Improvements</h3>
+<p>Whilst the current solution proves effective, several enhancements could be considered:</p><ul>
+<li><strong>Automated Testing</strong>: Integrate end-to-end tests before deployment to catch broken links or routing issues</li>
+<li><strong>Preview Deployments</strong>: Implement branch-based preview deployments for testing changes before production</li>
+<li><strong>Cache Optimisation</strong>: Investigate caching strategies to reduce build times for unchanged components</li>
+<li><strong>Monitoring</strong>: Add deployment notifications and uptime monitoring</li>
+</ul>
+<h3 id="53-when-not-to-use-this-approach">5.3 When Not to Use This Approach</h3>
+<p>This architecture may not suit all scenarios. Consider alternatives if:</p><ul>
+<li>Components require frequent coordinated updates (a monorepo might be preferable)</li>
+<li>Your team lacks familiarity with Git submodules (they can be tricky)</li>
+<li>You need server-side rendering or dynamic routes (static hosting has limitations)</li>
+<li>Build times become prohibitive (incremental builds might be necessary)</li>
+</ul>
+<h2 id="6-conclusion">6. Conclusion</h2>
+<p>This unified deployment pipeline successfully consolidates three independent applications whilst preserving their modularity and independence. The solution demonstrates that with careful planning and appropriate tooling, complex multi-application sites can be managed through automated workflows without sacrificing simplicity or maintainability.</p><p>The key takeaway is that modern deployment needn’t be monolithic. By combining Git submodules, GitHub Actions, and intelligent routing configuration, we can achieve the best of both worlds: the organisational benefits of separate repositories with the user experience of a unified site.</p><p>The complete workflow requires minimal ongoing maintenance. simply trigger the action when updates are ready, and the pipeline handles the rest. It’s rather elegant in its simplicity, really.</p><hr>
+<p><strong>Technical Stack</strong>: Next.js, React, Publii, GitHub Actions, Cloudflare Pages<br><strong>Repository Structure</strong>: Git submodules with independent version control<br><strong>Deployment Target</strong>: Static hosting with SPA routing support<br><strong>Build Time</strong>: Approximately 3-5 minutes for full deployment</p>
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>Constructing a Minimal 12MB Operating System for Web Hosting: A Comprehensive Technical Guide</title>
+        <author>
+            <name>Ehmad</name>
+        </author>
+        <link href="https://ehmi.se/blog/constructing-a-minimal-12mb-operating-system-for-web-hosting-a-comprehensive-technical-guide/"/>
+        <id>https://ehmi.se/blog/constructing-a-minimal-12mb-operating-system-for-web-hosting-a-comprehensive-technical-guide/</id>
+        <media:content url="https://ehmi.se/blog/media/posts/48/Screenshot-2025-11-29-135641.png" medium="image" />
+            <category term="tutorial"/>
+            <category term="book summery"/>
+            <category term="Linux kernel compilation"/>
+
+        <updated>2025-11-29T13:58:06+05:00</updated>
+            <summary>
+                <![CDATA[
+                        <img src="https://ehmi.se/blog/media/posts/48/Screenshot-2025-11-29-135641.png" alt=" Linux kernel" />
+                    This article presents a methodical approach to engineering a lightweight operating system, constrained to approximately 12 megabytes, specifically designed for Internet connectivity and web server deployment. This endeavour demonstrates the viability of creating functional networked systems without the bloat associated with contemporary operating systems, whilst&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                    <p><img src="https://ehmi.se/blog/media/posts/48/Screenshot-2025-11-29-135641.png" class="type:primaryImage" alt=" Linux kernel" /></p>
+                <p>This article presents a methodical approach to engineering a lightweight operating system, constrained to approximately 12 megabytes, specifically designed for Internet connectivity and web server deployment. This endeavour demonstrates the viability of creating functional networked systems without the bloat associated with contemporary operating systems, whilst maintaining sufficient capability to serve web content reliably.</p><hr>
+<h2 id="1-introduction-and-rationale">1. Introduction and Rationale</h2>
+<h3 id="the-contemporary-problem">The Contemporary Problem</h3>
+<p>Modern operating systems, Linux distributions, Windows, macOS, typically consume several gigabytes of storage. For embedded systems, IoT devices, or legacy hardware with severely limited resources, this represents an unrealistic proposition. The question thus arises: what constitutes the absolute minimum viable system capable of connecting to the Internet and hosting a functional web server?</p><h3 id="our-objective">Our Objective</h3>
+<p>We shall construct an operating system that fulfils the following requirements:</p><ul>
+<li><strong>Total footprint:</strong> approximately 12 megabytes</li>
+<li><strong>Core functionality:</strong> networking capabilities and HTTP server functionality</li>
+<li><strong>Deployment:</strong> bootable via QEMU or physical hardware</li>
+<li><strong>Architecture:</strong> x86-64 compatible for broad hardware support</li>
+</ul>
+<p>This represents a reduction of approximately 99.9% compared to typical Linux distributions.</p><hr>
+<h2 id="2-architectural-overview">2. Architectural Overview</h2>
+<h3 id="component-breakdown">Component Breakdown</h3>
+<p>A functional operating system comprises four essential components:</p><table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Size</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Bootloader</td>
+<td>~0.5 MB</td>
+<td>Initial system initialisation and kernel loading</td>
+</tr>
+<tr>
+<td>Linux Kernel</td>
+<td>4–6 MB</td>
+<td>Core system, networking, and device management</td>
+</tr>
+<tr>
+<td>Busybox</td>
+<td>1–2 MB</td>
+<td>Essential command-line utilities and init system</td>
+</tr>
+<tr>
+<td>Root Filesystem</td>
+<td>&lt;1 MB</td>
+<td>Configuration files, web content, system directories</td>
+</tr>
+</tbody></table>
+<p><strong>Total: approximately 12 MB</strong></p><h3 id="design-philosophy">Design Philosophy</h3>
+<p>The approach adheres to the Unix principle of doing one thing exceedingly well. Rather than attempting to build an operating system from scratch, a Herculean undertaking, we leverage established, well-tested components and strip them to their essentials.</p><hr>
+<h2 id="3-preparation-and-environment-setup">3. Preparation and Environment Setup</h2>
+<h3 id="prerequisites">Prerequisites</h3>
+<p>Before commencing, ensure your development system possesses:</p><ul>
+<li>A Linux-based development environment (Ubuntu, Debian, or similar)</li>
+<li>Approximately 2–3 gigabytes of free disk space for compilation artefacts</li>
+<li>Essential build tools: <code>gcc</code>, <code>make</code>, <code>git</code>, <code>wget</code></li>
+<li>Moderate technical proficiency with command-line interfaces</li>
+</ul>
+<h3 id="establishing-the-build-environment">Establishing the Build Environment</h3>
+<pre><code class="language-bash"># Install requisite dependencies
+sudo apt-get update
+sudo apt-get install build-essential wget git bc ncurses-dev \
+  flex bison openssl libssl-dev libelf-dev libdw-dev \
+  binutils-dev nasm mtools qemu-system-x86
+
+# Establish project directory structure
+mkdir -p ~/minimal-os/{kernel,busybox,syslinux,rootfs/{boot,www,etc,proc,sys,dev}}
+cd ~/minimal-os
+</code></pre>
+<p>This foundational step ensures all necessary tools are available for subsequent compilation tasks.</p><hr>
+<h2 id="4-linux-kernel-compilation">4. Linux Kernel Compilation</h2>
+<h3 id="kernel-selection-and-download">Kernel Selection and Download</h3>
+<p>The Linux kernel, the heart of any Linux-based operating system, must be compiled with minimal configuration to reduce its footprint.</p><pre><code class="language-bash">cd ~/minimal-os/kernel
+wget https://www.kernel.org/pub/linux/kernel/v6.x/linux-6.1.158.tar.xz
+tar xf linux-6.1.158.tar.xz
+cd linux-6.1.158
+</code></pre>
+<figure class="post__image"><img loading="lazy" src="https://ehmi.se/blog/media/posts/48/Screenshot-2025-11-29-135641-2.png" alt="Linux-Kernel" width="1158" height="682" sizes="(max-width: 1920px) 100vw, 1920px" srcset="https://ehmi.se/blog/media/posts/48/responsive/Screenshot-2025-11-29-135641-2-xs.webp 640w ,https://ehmi.se/blog/media/posts/48/responsive/Screenshot-2025-11-29-135641-2-sm.webp 768w ,https://ehmi.se/blog/media/posts/48/responsive/Screenshot-2025-11-29-135641-2-md.webp 1024w ,https://ehmi.se/blog/media/posts/48/responsive/Screenshot-2025-11-29-135641-2-lg.webp 1366w ,https://ehmi.se/blog/media/posts/48/responsive/Screenshot-2025-11-29-135641-2-xl.webp 1600w ,https://ehmi.se/blog/media/posts/48/responsive/Screenshot-2025-11-29-135641-2-2xl.webp 1920w"></figure><h3 id="kernel-configuration-strategy">Kernel Configuration Strategy</h3>
+<p>Rather than including drivers for every conceivable device, we shall configure the kernel exclusively for:</p><ul>
+<li>Networking capabilities (essential for Internet connectivity)</li>
+<li>Virtual block devices (e.g., SATA, virtio for QEMU compatibility)</li>
+<li>ext4 filesystem support</li>
+<li>Serial console output (invaluable for debugging)</li>
+</ul>
+<pre><code class="language-bash"># Generate minimal configuration
+cat &gt; .config &lt;&lt; &#39;EOF&#39;
+CONFIG_64BIT=y
+CONFIG_X86=y
+CONFIG_KERNEL_GZIP=y
+CONFIG_SERIAL_8250=y
+CONFIG_SERIAL_8250_CONSOLE=y
+CONFIG_NET=y
+CONFIG_INET=y
+CONFIG_NETDEVICES=y
+CONFIG_NET_CORE=y
+CONFIG_E1000=y
+CONFIG_VIRTIO_NET=y
+CONFIG_EXT4_FS=y
+CONFIG_SYSVIPC=n
+CONFIG_SYSFS=y
+CONFIG_PROC_FS=y
+CONFIG_DEVTMPFS=y
+CONFIG_DEVTMPFS_MOUNT=y
+CONFIG_UNIX=y
+CONFIG_MODULES=n
+CONFIG_DEBUG_KERNEL=n
+CONFIG_STRIP_ASM_SYMS=y
+EOF
+
+# Populate remaining configuration with sensible defaults
+make olddefconfig
+
+# Initiate compilation
+make -j$(nproc)
+
+# Verify kernel size
+ls -lh arch/x86/boot/bzImage
+</code></pre>
+<p><strong>Expected outcome:</strong> A kernel binary of 4–6 MB.</p><h3 id="compilation-considerations">Compilation Considerations</h3>
+<p>The <code>-j$(nproc)</code> flag parallelises compilation across available CPU cores, significantly reducing compilation time. On modern hardware, anticipate 10–30 minutes of compilation time.</p><p><strong>Advisory note:</strong> Should compilation failures occur, ensure all prerequisite libraries are installed. The <code>libelf-dev</code> and <code>libdw-dev</code> packages are frequently overlooked yet essential.</p><hr>
+<h2 id="5-busybox-the-swiss-army-knife">5. Busybox: The Swiss Army Knife</h2>
+<h3 id="understanding-busybox">Understanding Busybox</h3>
+<p>Busybox consolidates numerous Unix utilities into a single, statically-linked binary. Rather than maintaining separate executables for <code>ls</code>, <code>cat</code>, <code>cp</code>, et cetera, Busybox provides all functionality within approximately 1–2 megabytes.</p><h3 id="busybox-configuration">Busybox Configuration</h3>
+<pre><code class="language-bash">cd ~/minimal-os/busybox
+wget https://busybox.net/downloads/busybox-1.36.1.tar.bz2
+tar xf busybox-1.36.1.tar.bz2
+cd busybox-1.36.1
+
+# Apply minimal configuration
+cat &gt; .config &lt;&lt; &#39;EOF&#39;
+CONFIG_SH_ASH=y
+CONFIG_INIT=y
+CONFIG_MOUNT=y
+CONFIG_UMOUNT=y
+CONFIG_HOSTNAME=y
+CONFIG_IFCONFIG=y
+CONFIG_PING=y
+CONFIG_ROUTE=y
+CONFIG_DHCPC=y
+CONFIG_WGET=y
+CONFIG_HTTPD=y
+CONFIG_HTTPD_PORT=80
+CONFIG_LS=y
+CONFIG_CP=y
+CONFIG_MV=y
+CONFIG_RM=y
+CONFIG_MKDIR=y
+CONFIG_CAT=y
+CONFIG_ECHO=y
+CONFIG_FIND=y
+CONFIG_STATIC=y
+EOF
+
+# Compile with static linking
+make oldconfig
+make -j$(nproc) LDFLAGS=&quot;-static&quot;
+
+# Verify binary size
+ls -lh busybox
+</code></pre>
+<p><strong>Static linking</strong> ensures the binary operates independently, without requiring shared libraries. This is critical for embedded systems.</p><hr>
+<h2 id="6-root-filesystem-construction">6. Root Filesystem Construction</h2>
+<h3 id="directory-structure-establishment">Directory Structure Establishment</h3>
+<pre><code class="language-bash">cd ~/minimal-os/rootfs
+
+# Create essential directories
+mkdir -p {bin,sbin,etc,proc,sys,dev,var,tmp,www,boot/syslinux}
+
+# Copy compiled binaries
+cp ~/minimal-os/kernel/linux-6.1.158/arch/x86/boot/bzImage boot/kernel
+cp ~/minimal-os/busybox/busybox-1.36.1/busybox bin/
+
+# Create symbolic link
+cd bin &amp;&amp; ln -s busybox sh &amp;&amp; cd ..
+</code></pre>
+<h3 id="system-initialisation-scripts">System Initialisation Scripts</h3>
+<pre><code class="language-bash"># Create init script
+cat &gt; etc/init.d/rcS &lt;&lt; &#39;EOF&#39;
+#!/bin/sh
+mount -t proc none /proc
+mount -t sysfs none /sys
+mount -t devtmpfs none /dev
+hostname minimal-web-server
+echo &quot;Minimal Web OS Initialising...&quot;
+ifconfig lo 127.0.0.1
+udhcpc -i eth0 &amp;
+/bin/busybox httpd -h /www
+EOF
+
+chmod +x etc/init.d/rcS
+
+# Create inittab configuration
+cat &gt; etc/inittab &lt;&lt; &#39;EOF&#39;
+::sysinit:/etc/init.d/rcS
+::askfirst:/bin/sh
+::ctrlaltdel:/bin/umount -a -r
+EOF
+
+# System user files
+cat &gt; etc/passwd &lt;&lt; &#39;EOF&#39;
+root:x:0:0:root:/root:/bin/sh
+EOF
+
+cat &gt; etc/group &lt;&lt; &#39;EOF&#39;
+root:x:0:
+EOF
+</code></pre>
+<h3 id="web-content">Web Content</h3>
+<pre><code class="language-bash"># Create sample webpage
+cat &gt; www/index.html &lt;&lt; &#39;EOF&#39;
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;Minimal Web Server&lt;/title&gt;
+    &lt;style&gt;
+        body { font-family: &#39;Segoe UI&#39;, Tahoma, Geneva, Verdana, sans-serif; 
+               background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+               padding: 20px; margin: 0; }
+        .container { max-width: 600px; margin: 0 auto; 
+                    background: white; padding: 30px; border-radius: 8px; 
+                    box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        h1 { color: #333; margin-top: 0; }
+        .status { background: #d4edda; color: #155724; 
+                 padding: 15px; border-radius: 4px; }
+        p { color: #666; line-height: 1.6; }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div class=&quot;container&quot;&gt;
+        &lt;h1&gt;✓ Minimal Operating System&lt;/h1&gt;
+        &lt;div class=&quot;status&quot;&gt;
+            &lt;strong&gt;Status:&lt;/strong&gt; Web server operational
+        &lt;/div&gt;
+        &lt;p&gt;This server is executing upon a custom-engineered minimal Linux operating system, constrained to approximately 12 megabytes.&lt;/p&gt;
+        &lt;p&gt;&lt;strong&gt;System Specifications:&lt;/strong&gt;&lt;/p&gt;
+        &lt;ul&gt;
+            &lt;li&gt;Total OS size: ~12 MB&lt;/li&gt;
+            &lt;li&gt;Kernel: Linux 6.1.158 (minimal configuration)&lt;/li&gt;
+            &lt;li&gt;Utilities: Busybox 1.36.1&lt;/li&gt;
+            &lt;li&gt;Web Server: Busybox httpd&lt;/li&gt;
+            &lt;li&gt;Filesystem: ext4&lt;/li&gt;
+        &lt;/ul&gt;
+    &lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+EOF
+</code></pre>
+<hr>
+<h2 id="7-bootloader-installation">7. Bootloader Installation</h2>
+<h3 id="syslinux-the-boot-manager">Syslinux: The Boot Manager</h3>
+<p>Syslinux provides a lightweight bootloader capable of loading and executing the Linux kernel.</p><pre><code class="language-bash">cd ~/minimal-os/syslinux
+wget https://mirrors.edge.kernel.org/pub/linux/utils/boot/syslinux/syslinux-6.03.tar.gz
+tar xf syslinux-6.03.tar.gz
+cd syslinux-6.03
+
+# Compile Syslinux
+make -j$(nproc)
+
+# Locate the bootloader binary
+find . -name &quot;syslinux.bin&quot; -type f
+</code></pre>
+<h3 id="boot-configuration">Boot Configuration</h3>
+<pre><code class="language-bash">cd ~/minimal-os/rootfs/boot/syslinux
+
+cat &gt; syslinux.cfg &lt;&lt; &#39;EOF&#39;
+PROMPT 1
+TIMEOUT 50
+DEFAULT linux
+
+LABEL linux
+    KERNEL /boot/kernel
+    APPEND root=/dev/sda1 console=ttyS0 console=tty0 quiet
+EOF
+</code></pre>
+<hr>
+<h2 id="8-creating-the-bootable-disk-image">8. Creating the Bootable Disk Image</h2>
+<h3 id="disk-image-generation">Disk Image Generation</h3>
+<pre><code class="language-bash">cd ~/minimal-os
+
+# Create 12 MB raw disk image
+dd if=/dev/zero of=disk.img bs=1M count=12
+
+# Create partition table
+(echo o; echo n; echo p; echo 1; echo ; echo ; echo w) | fdisk disk.img
+
+# Establish loop device
+LOOP=$(sudo losetup -f)
+sudo losetup $LOOP disk.img -o 1048576
+
+# Format partition
+sudo mkfs.ext4 -F $LOOP
+
+# Mount and populate
+mkdir -p mnt
+sudo mount $LOOP mnt
+sudo cp -r rootfs/* mnt/
+sudo sync
+sudo umount mnt
+
+# Install bootloader
+SYSLINUX_BIN=$(find syslinux/syslinux-6.03 -name &quot;syslinux.bin&quot; -type f | head -1)
+sudo dd if=$SYSLINUX_BIN of=disk.img bs=1 count=440 conv=notrunc
+
+# Finalisation
+sudo losetup -d $LOOP
+
+# Verification
+ls -lh disk.img
+</code></pre>
+<hr>
+<h2 id="9-deployment-and-testing">9. Deployment and Testing</h2>
+<h3 id="qemu-emulation-recommended">QEMU Emulation (Recommended)</h3>
+<p>For initial testing, QEMU provides a safe, isolated environment:</p><pre><code class="language-bash">qemu-system-x86_64 -drive file=disk.img,format=raw \
+  -m 256 \
+  -netdev user,id=net0 \
+  -device e1000,netdev=net0 \
+  -nographic \
+  -serial mon:stdio
+</code></pre>
+<h3 id="expected-behaviour">Expected Behaviour</h3>
+<p>Upon boot, you should observe:</p><ol>
+<li>Bootloader initialisation via Syslinux</li>
+<li>Kernel loading and initialisation messages</li>
+<li>Network interface configuration via DHCP</li>
+<li>Web server activation on port 80</li>
+<li>System ready for incoming HTTP requests</li>
+</ol>
+<h3 id="testing-connectivity">Testing Connectivity</h3>
+<pre><code class="language-bash"># From your host system (in another terminal)
+# If using QEMU user networking, access at localhost
+
+# Get IP from QEMU output, then:
+curl http://192.168.x.x
+# Should return your HTML page
+</code></pre>
+<h3 id="physical-hardware-deployment-advanced">Physical Hardware Deployment (Advanced)</h3>
+<p><strong>Caution:</strong> This operation will overwrite your target storage device.</p><pre><code class="language-bash"># Write to USB drive (replace sdX with your device)
+sudo dd if=disk.img of=/dev/sdX bs=4M conv=fsync
+sudo sync
+</code></pre>
+<hr>
+<h2 id="10-optimisation-and-troubleshooting">10. Optimisation and Troubleshooting</h2>
+<h3 id="size-reduction-strategies">Size Reduction Strategies</h3>
+<p>Should your system exceed 12 MB, consider:</p><ol>
+<li><strong>Binary stripping:</strong> <code>strip ~/minimal-os/rootfs/bin/busybox</code></li>
+<li><strong>Kernel compression:</strong> Enable XZ compression in <code>CONFIG_KERNEL_XZ</code></li>
+<li><strong>Minimal configuration:</strong> Disable unused Busybox utilities</li>
+<li><strong>Filesystem optimisation:</strong> Remove unnecessary files from <code>/var</code></li>
+</ol>
+<h3 id="common-issues-and-remedies">Common Issues and Remedies</h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Kernel fails to compile</td>
+<td>Reinstall <code>libelf-dev</code>, <code>libdw-dev</code></td>
+</tr>
+<tr>
+<td>Network unreachable</td>
+<td>Verify <code>CONFIG_NETDEVICES=y</code> and <code>CONFIG_E1000=y</code></td>
+</tr>
+<tr>
+<td>Web server won’t start</td>
+<td>Check <code>/www/index.html</code> exists and permissions</td>
+</tr>
+<tr>
+<td>Boot hangs at Syslinux</td>
+<td>Verify kernel path in <code>syslinux.cfg</code> is correct</td>
+</tr>
+<tr>
+<td>Filesystem corruption</td>
+<td>Regenerate disk image from scratch</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="11-conclusions-and-future-considerations">11. Conclusions and Future Considerations</h2>
+<h3 id="achievements">Achievements</h3>
+<p>Through this exercise, we have demonstrated:</p><ul>
+<li>The viability of creating functional operating systems at minimal scale</li>
+<li>The efficacy of leveraging established open-source components</li>
+<li>The potential for deploying systems on severely constrained hardware</li>
+</ul>
+<h3 id="practical-applications">Practical Applications</h3>
+<p>Such minimalist systems prove invaluable for:</p><ul>
+<li>Embedded IoT devices</li>
+<li>Legacy hardware revitalisation</li>
+<li>Disaster recovery and minimal boot environments</li>
+<li>Educational purposes and systems programming study</li>
+<li>Network-attached storage (NAS) on minimal hardware</li>
+</ul>
+<h3 id="further-enhancements">Further Enhancements</h3>
+<p>For production deployment, one might consider:</p><ul>
+<li>Integration with Docker for containerised applications</li>
+<li>Implementation of systemd for more sophisticated service management</li>
+<li>SSL/TLS support for secure web communications</li>
+<li>Database integration for dynamic content generation</li>
+<li>Automated deployment via cloud-init or similar technologies</li>
+</ul>
+<hr>
+<h2 id="12-final-remarks">12. Final Remarks</h2>
+<p>The construction of a minimal operating system represents not merely a technical exercise, but a valuable reminder that contemporary bloat is not inevitable. By understanding the constituent components of an operating system and making deliberate design choices, one can create systems that are simultaneously powerful and parsimonious in their resource consumption.</p><p>This approach, building only what is necessary, remains a cornerstone principle of excellent engineering, whether applied to operating systems, software architecture, or infrastructure design.</p><hr>
+<h2 id="appendix-a-complete-build-script">Appendix A: Complete Build Script</h2>
+<p>For those preferring automation:</p><pre><code class="language-bash">#!/bin/bash
+set -e
+
+cd ~/minimal-os
+
+echo &quot;=== Compiling Linux Kernel ===&quot;
+cd kernel/linux-6.1.158
+make -j$(nproc)
+cp arch/x86/boot/bzImage ../../../rootfs/boot/kernel
+
+echo &quot;=== Compiling Busybox ===&quot;
+cd ~/minimal-os/busybox/busybox-1.36.1
+make -j$(nproc) LDFLAGS=&quot;-static&quot;
+cp busybox ../../rootfs/bin/
+cd ../../rootfs/bin &amp;&amp; ln -sf busybox sh
+
+echo &quot;=== Building Syslinux ===&quot;
+cd ~/minimal-os/syslinux/syslinux-6.03
+make -j$(nproc)
+
+echo &quot;=== Creating Disk Image ===&quot;
+cd ~/minimal-os
+dd if=/dev/zero of=disk.img bs=1M count=12
+(echo o; echo n; echo p; echo 1; echo ; echo ; echo w) | fdisk disk.img
+
+LOOP=$(sudo losetup -f)
+sudo losetup $LOOP disk.img -o 1048576
+sudo mkfs.ext4 -F $LOOP
+mkdir -p mnt
+sudo mount $LOOP mnt
+sudo cp -r rootfs/* mnt/
+sudo sync
+sudo umount mnt
+
+SYSLINUX_BIN=$(find syslinux/syslinux-6.03 -name &quot;syslinux.bin&quot; | head -1)
+sudo dd if=$SYSLINUX_BIN of=disk.img bs=1 count=440 conv=notrunc
+sudo losetup -d $LOOP
+
+echo &quot;✓ Build complete!&quot;
+ls -lh disk.img
+</code></pre>
+<hr>
+<h2 id="references">References</h2>
+<ul>
+<li>Linux Kernel Documentation: <a href="https://www.kernel.org/doc/">https://www.kernel.org/doc/</a></li>
+<li>Busybox Project: <a href="https://busybox.net/">https://busybox.net/</a></li>
+<li>Syslinux Project: <a href="https://syslinux.org/">https://syslinux.org/</a></li>
+<li>QEMU Documentation: <a href="https://www.qemu.org/documentation/">https://www.qemu.org/documentation/</a></li>
+</ul>
+
+            ]]>
+        </content>
+    </entry>
+    <entry>
+        <title>How to Use Discord Webhook with Examples: The Ultimate Step-by-Step Guide</title>
+        <author>
+            <name>Ehmad</name>
+        </author>
+        <link href="https://ehmi.se/blog/how-to-use-discord-webhook-with-examples-the-ultimate-step-by-step-guide/"/>
+        <id>https://ehmi.se/blog/how-to-use-discord-webhook-with-examples-the-ultimate-step-by-step-guide/</id>
+        <media:content url="https://ehmi.se/blog/media/posts/47/image_proxy-2.png" medium="image" />
+            <category term="webhook "/>
+            <category term="tutorial"/>
+            <category term="discord"/>
+
+        <updated>2025-08-24T18:42:09+05:00</updated>
+            <summary>
+                <![CDATA[
+                        <img src="https://ehmi.se/blog/media/posts/47/image_proxy-2.png" alt="" />
+                    Introduction to Discord Webhooks Discord has grown beyond a simple voice chat platform into a full-fledged community hub for gamers, developers, and businesses alike. One of the most powerful tools it offers is webhooks. But what exactly are Discord webhooks, and how can you use&hellip;
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                    <p><img src="https://ehmi.se/blog/media/posts/47/image_proxy-2.png" class="type:primaryImage" alt="" /></p>
+                <h3 id="introduction-to-discord-webhooks"><strong>Introduction to Discord Webhooks</strong></h3>
+<p>Discord has grown beyond a simple voice chat platform into a full-fledged community hub for gamers, developers, and businesses alike. One of the most powerful tools it offers is <strong>webhooks</strong>.</p><p>But what exactly are Discord webhooks, and how can you use them effectively? Whether you’re a beginner looking to send automated notifications or a developer integrating external apps, this guide will walk you through everything you need to know—complete with practical examples.</p><hr>
+<h2 id="what-are-discord-webhooks"><strong>What Are Discord Webhooks?</strong></h2>
+<p>At its core, a <strong>Discord webhook</strong> is a way for external applications to send messages into a Discord channel automatically. Instead of typing a message yourself, you can configure apps or scripts to push content directly into your server.</p><p>In simpler terms, think of webhooks as automated messengers that can deliver updates, alerts, or notifications straight into your community.</p><hr>
+<h2 id="why-use-discord-webhooks"><strong>Why Use Discord Webhooks?</strong></h2>
+<p>Some of the most common reasons people use Discord webhooks include:</p><ul>
+<li><p><strong>Automated Notifications</strong> – Get alerts when a new commit is pushed on GitHub or when your server goes down.</p></li>
+<li><p><strong>Integration with External Apps</strong> – Connect platforms like Trello, GitHub, or Jenkins with your Discord server.</p></li>
+<li><p><strong>Custom Announcements</strong> – Post updates from a website, blog, or bot without manual input.</p></li>
+</ul>
+<hr>
+<h2 id="benefits-of-discord-webhooks-for-developers-and-communities"><strong>Benefits of Discord Webhooks for Developers and Communities</strong></h2>
+<ul>
+<li><p>Saves time with automation</p></li>
+<li><p>Improves communication in communities</p></li>
+<li><p>Provides real-time monitoring (e.g., error alerts, API logs)</p></li>
+<li><p>Easy to set up without coding knowledge</p></li>
+</ul>
+<hr>
+<h2 id="setting-up-a-discord-webhook"><strong>Setting Up a Discord Webhook</strong></h2>
+<h3 id="prerequisites-before-creating-a-webhook"><strong>Prerequisites Before Creating a Webhook</strong></h3>
+<p>Before you start, make sure you have:</p><ul>
+<li><p>A Discord server where you have <strong>Manage Webhooks</strong> permission</p></li>
+<li><p>A channel where notifications will be posted</p></li>
+<li><p>Basic familiarity with copy-pasting links</p></li>
+</ul>
+<hr>
+<h3 id="step-by-step-guide-to-creating-a-webhook-in-discord"><strong>Step-by-Step Guide to Creating a Webhook in Discord</strong></h3>
+<ol>
+<li><p>Open <strong>Server Settings</strong> in Discord.</p></li>
+<li><p>Select <strong>Integrations</strong> → <strong>Webhooks</strong>.</p></li>
+<li><p>Click <strong>New Webhook</strong>.</p></li>
+<li><p>Give your webhook a name and assign it to a channel.</p></li>
+<li><p>Copy the <strong>Webhook URL</strong>—this is what you’ll use to send data.</p></li>
+</ol>
+<h2 id="image-description"><figure class="post__image"><img loading="lazy" src="https://ehmi.se/blog/media/posts/47/image_proxy.png" alt="Image description" width="753" height="310" sizes="(max-width: 1920px) 100vw, 1920px" srcset="https://ehmi.se/blog/media/posts/47/responsive/image_proxy-xs.webp 640w ,https://ehmi.se/blog/media/posts/47/responsive/image_proxy-sm.webp 768w ,https://ehmi.se/blog/media/posts/47/responsive/image_proxy-md.webp 1024w ,https://ehmi.se/blog/media/posts/47/responsive/image_proxy-lg.webp 1366w ,https://ehmi.se/blog/media/posts/47/responsive/image_proxy-xl.webp 1600w ,https://ehmi.se/blog/media/posts/47/responsive/image_proxy-2xl.webp 1920w"></figure></h2>
+<h3 id="managing-and-customizing-your-webhook"><strong>Managing and Customizing Your Webhook</strong></h3>
+<p>You can:</p><ul>
+<li><p>Assign an avatar (custom profile picture)</p></li>
+<li><p>Change its posting channel anytime</p></li>
+<li><p>Rename the webhook for different use cases</p></li>
+</ul>
+<hr>
+<h2 id="how-discord-webhooks-work-internally"><strong>How Discord Webhooks Work Internally</strong></h2>
+<h3 id="anatomy-of-a-webhook-url"><strong>Anatomy of a Webhook URL</strong></h3>
+<p>A Discord webhook URL looks like this:</p><pre><code>https://discord.com/api/webhooks/{webhook.id}/{webhook.token}
+</code></pre>
+<p>Both the <strong>ID</strong> and <strong>Token</strong> must be kept secure, as anyone with this link can post messages to your channel.</p><hr>
+<h3 id="supported-data-formats-json--embeds"><strong>Supported Data Formats (JSON &amp; Embeds)</strong></h3>
+<ul>
+<li><p><strong>Plain text messages</strong> – Quick updates</p></li>
+<li><p><strong>JSON payloads</strong> – Structured data</p></li>
+<li><p><strong>Embeds</strong> – Rich content with titles, descriptions, images, and fields</p></li>
+</ul>
+<hr>
+<h2 id="sending-messages-with-discord-webhooks"><strong>Sending Messages with Discord Webhooks</strong></h2>
+<h3 id="sending-a-simple-text-message-via-curl"><strong>Sending a Simple Text Message via cURL</strong></h3>
+<pre><code class="language-bash">curl -H &quot;Content-Type: application/json&quot; \
+-d &#39;{&quot;content&quot;:&quot;Hello from Discord Webhook!&quot;}&#39; \
+https://discord.com/api/webhooks/WEBHOOK_ID/WEBHOOK_TOKEN
+</code></pre>
+<hr>
+<h3 id="sending-json-payloads-with-custom-formatting"><strong>Sending JSON Payloads with Custom Formatting</strong></h3>
+<pre><code class="language-json">{
+  &quot;content&quot;: &quot;New update available!&quot;,
+  &quot;username&quot;: &quot;Update Bot&quot;,
+  &quot;avatar_url&quot;: &quot;https://example.com/avatar.png&quot;
+}
+</code></pre>
+<hr>
+<h3 id="adding-embeds-for-rich-content"><strong>Adding Embeds for Rich Content</strong></h3>
+<pre><code class="language-json">{
+  &quot;embeds&quot;: [{
+    &quot;title&quot;: &quot;Server Status&quot;,
+    &quot;description&quot;: &quot;✅ All systems operational&quot;,
+    &quot;color&quot;: 65280
+  }]
+}
+</code></pre>
+<hr>
+<h2 id="practical-examples-of-using-discord-webhooks"><strong>Practical Examples of Using Discord Webhooks</strong></h2>
+<h3 id="example-1-github-push-notifications">Example 1: GitHub Push Notifications</h3>
+<p>In your GitHub repository, go to Settings → Webhooks → Add Webhook.</p><p>Paste your Discord Webhook URL into the “Payload URL” field.</p><p>Set the Content type to application/json and choose which events you’d like (e.g., push, pull_request, or issues).</p><p>Now, whenever someone pushes new code, merges a pull request, or opens an issue, Discord will automatically post a structured message in your chosen channel.</p><p>This makes it easy for your whole team to stay up-to-date on changes without leaving Discord.</p><h3 id="example-2-server-monitoring-alerts">Example 2: Server Monitoring Alerts</h3>
+<p>Use free uptime monitoring services like UptimeRobot, BetterUptime, or even custom scripts running on your server.</p><p>Configure these tools to send alerts to your Discord Webhook if your website or application goes offline, response times spike, or critical errors occur.</p><p>You can customize alert frequency (e.g., every 5 minutes if downtime persists) and format the message to include server name, timestamp, and current status.</p><p>This ensures your team gets real-time alerts directly in Discord, making it easier to respond quickly without having to constantly check dashboards.</p><h3 id="example-3-custom-bot-like-notifications">Example 3: Custom Bot-like Notifications</h3>
+<p>Even without coding a bot, Discord webhooks allow you to send styled messages using JSON payloads.</p><p>You can customize:</p><p>Username &amp; Avatar → Make messages appear as if they came from a bot or a custom account.</p><p>Rich Embeds → Add colored sidebars, bold titles, clickable links, images, and even fields with structured data.</p><p>Timestamps → Automatically show when an event occurred.</p><p>Example: You could create a webhook that posts a daily summary like:</p><p>“✅ All systems running smoothly”</p><p>“⚠️ Warning: Disk usage at 85%”</p><p>This makes the webhook feel like a lightweight bot, perfect for dashboards, reminders, or project updates without needing to host or code a full bot.</p><h2 id="advanced-webhook-features"><strong>Advanced Webhook Features</strong></h2>
+<p>Discord webhooks may seem simple at first glance, but they offer powerful features when combined with external scripts and automation tools. Let’s break down some advanced capabilities.</p><hr>
+<h3 id="using-multiple-webhooks-in-one-channel"><strong>Using Multiple Webhooks in One Channel</strong></h3>
+<ul>
+<li><p>A single channel can have <strong>multiple webhooks</strong> assigned.</p></li>
+<li><p>This is useful if you want different integrations—for example:</p><ul>
+<li><p>One webhook for GitHub updates</p></li>
+<li><p>Another webhook for server monitoring</p></li>
+<li><p>A third webhook for announcements</p></li>
+</ul>
+</li>
+</ul>
+<p><strong>Pro Tip:</strong> Assign unique usernames and avatars to differentiate which webhook sent the message.</p><hr>
+<h3 id="automating-webhooks-with-python-or-nodejs"><strong>Automating Webhooks with Python or Node.js</strong></h3>
+<p>Instead of manually using cURL, you can integrate webhooks into scripts or applications.</p><h4 id="example-sending-a-message-with-python-using-requests">Example: Sending a Message with Python (using <code>requests</code>)</h4>
+<pre><code class="language-python">import requests
+
+url = &quot;https://discord.com/api/webhooks/WEBHOOK_ID/WEBHOOK_TOKEN&quot;
+data = {
+    &quot;content&quot;: &quot;Hello from Python!&quot;,
+    &quot;username&quot;: &quot;Python Bot&quot;
+}
+
+response = requests.post(url, json=data)
+print(response.status_code)
+</code></pre>
+<h4 id="example-sending-a-message-with-nodejs">Example: Sending a Message with Node.js</h4>
+<pre><code class="language-javascript">const fetch = require(&quot;node-fetch&quot;);
+
+const url = &quot;https://discord.com/api/webhooks/WEBHOOK_ID/WEBHOOK_TOKEN&quot;;
+
+const data = {
+  content: &quot;Hello from Node.js!&quot;,
+  username: &quot;Node Bot&quot;
+};
+
+fetch(url, {
+  method: &quot;POST&quot;,
+  headers: { &quot;Content-Type&quot;: &quot;application/json&quot; },
+  body: JSON.stringify(data)
+})
+.then(res =&gt; console.log(res.status));
+</code></pre>
+<p>With these, you can automate <strong>alerts, reminders, and event notifications</strong>.</p><hr>
+<h3 id="rate-limits-and-best-practices"><strong>Rate Limits and Best Practices</strong></h3>
+<p>Discord webhooks are subject to <strong>rate limits</strong> to prevent spam:</p><ul>
+<li><p>Maximum of <strong>5 requests per second per webhook</strong></p></li>
+<li><p>Payload size should not exceed <strong>8 MB</strong></p></li>
+</ul>
+<p><strong>Best Practices:</strong></p><ul>
+<li><p>Bundle multiple messages into a single embed instead of spamming</p></li>
+<li><p>Don’t expose your webhook URL in public code repositories</p></li>
+<li><p>Use environment variables for storing webhook tokens securely</p></li>
+</ul>
+<hr>
+<h2 id="security-considerations-for-discord-webhooks"><strong>Security Considerations for Discord Webhooks</strong></h2>
+<h3 id="protecting-your-webhook-url"><strong>Protecting Your Webhook URL</strong></h3>
+<p>Anyone with your webhook URL can post messages in your channel. To secure it:</p><ul>
+<li><p><strong>Never share</strong> the URL publicly</p></li>
+<li><p>Store it in a safe location (e.g., <code>.env</code> file for projects)</p></li>
+<li><p>Regenerate the webhook if you suspect it has been compromised</p></li>
+</ul>
+<hr>
+<h3 id="common-mistakes-to-avoid"><strong>Common Mistakes to Avoid</strong></h3>
+<ul>
+<li><p>Posting <strong>sensitive information</strong> (passwords, API keys) through webhooks</p></li>
+<li><p>Forgetting to set the <strong>Content-Type</strong> header as <code>application/json</code></p></li>
+<li><p>Ignoring <strong>rate limits</strong>, which may result in failed requests</p></li>
+</ul>
+<hr>
+<h2 id="troubleshooting-common-webhook-issues"><strong>Troubleshooting Common Webhook Issues</strong></h2>
+<h3 id="why-is-my-webhook-not-sending"><strong>Why Is My Webhook Not Sending?</strong></h3>
+<p>Common reasons include:</p><ul>
+<li><p>Invalid webhook URL (copied incorrectly)</p></li>
+<li><p>Missing <strong>Content-Type</strong> header</p></li>
+<li><p>JSON payload formatting errors</p></li>
+</ul>
+<hr>
+<h3 id="debugging-json-payload-errors"><strong>Debugging JSON Payload Errors</strong></h3>
+<p>If Discord rejects your request, double-check:</p><ul>
+<li><p>Brackets <code>{}</code> and arrays <code>[]</code> are properly closed</p></li>
+<li><p>Field names are lowercase (e.g., <code>&quot;content&quot;</code>, not <code>&quot;Content&quot;</code>)</p></li>
+<li><p>Payload size does not exceed <strong>8 MB</strong></p></li>
+</ul>
+<p>You can validate JSON at <a href="https://jsonlint.com">https://jsonlint.com</a>.</p><hr>
+<h2 id="faqs-about-discord-webhooks"><strong>FAQs About Discord Webhooks</strong></h2>
+<h3 id="can-i-use-discord-webhooks-without-a-bot"><strong>Can I use Discord webhooks without a bot?</strong></h3>
+<p>Yes! Unlike bots, webhooks don’t require coding or OAuth2 setup. You simply paste the webhook URL into your script or integration tool.</p><hr>
+<h3 id="what-is-the-message-limit-for-webhooks"><strong>What is the message limit for webhooks?</strong></h3>
+<p>Each webhook message can have up to <strong>2000 characters in plain text</strong> or <strong>6000 characters if using embeds</strong>.</p><hr>
+<h3 id="how-many-webhooks-can-a-channel-have"><strong>How many webhooks can a channel have?</strong></h3>
+<p>A single channel can have up to <strong>10 webhooks</strong>.</p><hr>
+<h3 id="can-i-edit-or-delete-webhook-messages"><strong>Can I edit or delete webhook messages?</strong></h3>
+<p>Yes. Webhooks can <strong>edit</strong> or <strong>delete</strong> their own messages, but not those of other webhooks or users.</p><hr>
+<h3 id="are-discord-webhooks-free-to-use"><strong>Are Discord webhooks free to use?</strong></h3>
+<p>Absolutely! Discord provides webhooks free of charge, making them accessible to all communities and developers.</p><hr>
+<h3 id="can-i-schedule-webhook-messages"><strong>Can I schedule webhook messages?</strong></h3>
+<p>Not directly. However, you can schedule them using <strong>cron jobs</strong> in Linux or third-party automation tools like <strong>Zapier</strong> or <strong>IFTTT</strong>.</p><hr>
+<h2 id="conclusion"><strong>Conclusion</strong></h2>
+<p>Discord webhooks are one of the most powerful yet underrated features of the platform. Whether you’re a developer seeking real-time integrations or a community admin who wants automated updates, webhooks can save time, improve communication, and enhance engagement.</p><p>By following this guide, you’ve learned:</p><ul>
+<li><p>What Discord webhooks are and why they’re useful</p></li>
+<li><p>How to create and customize them</p></li>
+<li><p>How to send messages using cURL, JSON, Python, and Node.js</p></li>
+<li><p>Advanced features like embeds, automation, and security best practices</p></li>
+<li><p>Real-world examples for GitHub, monitoring, and notifications</p></li>
+</ul>
+<p>So go ahead—set up your own webhook today and unlock the full potential of Discord automation. 🚀</p>
+            ]]>
+        </content>
+    </entry>
+</feed>

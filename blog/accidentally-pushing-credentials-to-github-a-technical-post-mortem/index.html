@@ -1,0 +1,826 @@
+<!DOCTYPE html><html lang="en-gb"><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Accidentally Pushing Credentials to GitHub: A Technical Post-Mortem - Ehmi</title><meta name="description" content="I was doing some configuration changes when I ran git push Within minutes, I realized what I'd done: my .env file was now sitting in my public GitHub repository"><meta name="generator" content="Publii Open-Source CMS for Static Site"><meta name="theme-color" content="#17181E" media="(prefers-color-scheme: dark)"><meta name="theme-color" content="#3AB8D7" media="(prefers-color-scheme: light)"><meta name="msapplication-navbutton-color" content="#3AB8D7"><meta name="apple-mobile-web-app-status-bar-style" content="#3AB8D7"><link rel="canonical" href="https://ehmi.se/blog/accidentally-pushing-credentials-to-github-a-technical-post-mortem/"><link rel="alternate" type="application/atom+xml" href="https://ehmi.se/blog/feed.xml" title="Ehmi - RSS"><link rel="alternate" type="application/json" href="https://ehmi.se/blog/feed.json" title="Ehmi - JSON"><meta property="og:title" content="Accidentally Pushing Credentials to GitHub: A Technical Post-Mortem"><meta property="og:image" content="https://ehmi.se/blog/media/posts/53/Screenshot-2026-02-15-181737.png"><meta property="og:image:width" content="296"><meta property="og:image:height" content="68"><meta property="og:site_name" content="Ehmi"><meta property="og:description" content="I was doing some configuration changes when I ran git push Within minutes, I realized what I'd done: my .env file was now sitting in my public GitHub repository"><meta property="og:url" content="https://ehmi.se/blog/accidentally-pushing-credentials-to-github-a-technical-post-mortem/"><meta property="og:type" content="article"><meta name="twitter:card" content="summary"><meta name="twitter:site" content="@Ehmi0k"><meta name="twitter:title" content="Accidentally Pushing Credentials to GitHub: A Technical Post-Mortem"><meta name="twitter:description" content="I was doing some configuration changes when I ran git push Within minutes, I realized what I'd done: my .env file was now sitting in my public GitHub repository"><meta name="twitter:image" content="https://ehmi.se/blog/media/posts/53/Screenshot-2026-02-15-181737.png"><link rel="shortcut icon" href="https://ehmi.se/blog/media/website/favicon.png" type="image/png"><link rel="stylesheet" href="https://ehmi.se/blog/assets/css/style.css?v=d385bc0ff3a04c1b92f998df1d9dfc3f"><script type="application/ld+json">{"@context":"http://schema.org","@type":"Article","mainEntityOfPage":{"@type":"WebPage","@id":"https://ehmi.se/blog/accidentally-pushing-credentials-to-github-a-technical-post-mortem/"},"headline":"Accidentally Pushing Credentials to GitHub: A Technical Post-Mortem","datePublished":"2026-02-15T18:20+05:00","dateModified":"2026-07-30T15:07+05:00","image":{"@type":"ImageObject","url":"https://ehmi.se/blog/media/posts/53/Screenshot-2026-02-15-181737.png","height":68,"width":296},"description":"I was doing some configuration changes when I ran git push Within minutes, I realized what I'd done: my .env file was now sitting in my public GitHub repository","author":{"@type":"Person","name":"Ehmad","url":"https://ehmi.se/blog/authors/ehmad/"},"publisher":{"@type":"Organization","name":"Ehmad","logo":{"@type":"ImageObject","url":"https://ehmi.se/blog/media/website/ehmi.png","height":100,"width":150}}}</script><noscript><style>img[loading] {
+                    opacity: 1;
+                }</style></noscript><script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6116904596263046" crossorigin="anonymous"></script></head><body class="post-template"><header class="top js-header"><a class="logo" href="https://ehmi.se/blog/"><img src="https://ehmi.se/blog/media/website/ehmi.png" alt="Ehmi" width="150" height="100"></a><nav class="navbar js-navbar"><button class="navbar__toggle js-toggle" aria-label="Menu" aria-haspopup="true" aria-expanded="false"><span class="navbar__toggle-box"><span class="navbar__toggle-inner">Menu</span></span></button><ul class="navbar__menu"><li><a href="https://ehmi.se/blog/about-ehmi/" target="_self">About me</a></li><li><a href="https://ehmi.se/blog/contact-us/" target="_self">Contact</a></li></ul></nav><div class="search"><div class="search__overlay js-search-overlay"><div class="wrapper search__overlay-inner"></div></div><button class="search__btn btn--icon js-search-btn" aria-label="Search"><svg height="18" width="18" role="presentation" focusable="false"><use xlink:href="https://ehmi.se/blog/assets/svg/svg-map.svg#search"/></svg></button></div></header><main class="post"><article class="content"><div class="hero"><header class="hero__content"><div class="wrapper"><h1>Accidentally Pushing Credentials to GitHub: A Technical Post-Mortem</h1><div class="feed__meta content__meta"><a href="https://ehmi.se/blog/authors/ehmad/" class="feed__author">Ehmad</a> <time datetime="2026-02-15T18:20" class="feed__date">February 15, 2026 </time><span class="reading-time" aria-label="10 min read">10 min read</span></div></div></header><figure class="hero__image"><div class="hero__image-wrapper"><img src="https://ehmi.se/blog/media/posts/53/Screenshot-2026-02-15-181737.png" srcset="https://ehmi.se/blog/media/posts/53/responsive/Screenshot-2026-02-15-181737-xs.webp 640w, https://ehmi.se/blog/media/posts/53/responsive/Screenshot-2026-02-15-181737-sm.webp 768w, https://ehmi.se/blog/media/posts/53/responsive/Screenshot-2026-02-15-181737-md.webp 1024w, https://ehmi.se/blog/media/posts/53/responsive/Screenshot-2026-02-15-181737-lg.webp 1366w, https://ehmi.se/blog/media/posts/53/responsive/Screenshot-2026-02-15-181737-xl.webp 1600w, https://ehmi.se/blog/media/posts/53/responsive/Screenshot-2026-02-15-181737-2xl.webp 1920w" sizes="88vw" loading="eager" height="68" width="296" alt="github commits"></div><figcaption>github commits mrxehmad</figcaption></figure></div><div class="entry-wrapper content__entry"><p><strong>A Deep Dive into Git Secret Exposure, Recovery, and Prevention</strong></p><hr><h2 id="the-incident">The Incident</h2><p>A production environment’s <code>.env</code> file containing sensitive credentials was accidentally committed and pushed to a public GitHub repository. What seemed like a straightforward fix quickly escalated into a multi-layered incident affecting production services and requiring coordinated remediation across multiple systems.</p><p>This post-mortem examines the technical details, cascading failures, and systemic improvements needed to prevent similar incidents.</p><hr><h2 id="what-went-wrong">What Went Wrong</h2><h3 id="primary-failure-missing-gitignore-entry">Primary Failure: Missing <code>.gitignore</code> Entry</h3><p>The root cause was deceptively simple—the <code>.env</code> file wasn’t excluded from version control. Despite being a well-known best practice, this configuration gap allowed sensitive credentials to enter the repository.</p><p><strong>Exposed Data:</strong></p><ul><li>Database connection strings and passwords</li><li>API authentication keys</li><li>JWT signing secrets</li><li>Third-party service tokens</li></ul><h3 id="secondary-failure-template-file-contamination">Secondary Failure: Template File Contamination</h3><p>During remediation efforts, a second exposure was discovered: the <code>.env.example</code> file contained actual production credentials instead of placeholder values. This meant two separate files in the repository history contained live credentials.</p><h3 id="tertiary-failure-deployment-hook-design">Tertiary Failure: Deployment Hook Design</h3><p>The production deployment system used a post-receive Git hook with this critical line:</p><pre><code class="language-bash">git --work-tree=$TARGET --git-dir=$GIT_DIR checkout -f $BRANCH
+</code></pre><p>The <code>-f</code> flag force-overwrites the working directory. When data files were removed from Git tracking during cleanup, the deployment hook deleted them from production, causing service disruption.</p><hr><h2 id="the-recovery-process">The Recovery Process</h2><h3 id="phase-1-immediate-credential-rotation-priority-one">Phase 1: Immediate Credential Rotation (Priority One)</h3><p>The first action was rotating all exposed credentials:</p><ul><li>Database passwords regenerated</li><li>API keys revoked and replaced</li><li>JWT secrets rotated</li><li>Service authentication tokens refreshed</li></ul><p><strong>Critical Insight:</strong> Removing files from Git doesn’t remove credentials from the internet. Any exposed secret must be treated as permanently compromised, regardless of how quickly it’s removed from the repository.</p><h3 id="phase-2-history-rewriting">Phase 2: History Rewriting</h3><p>Removing the current file isn’t enough—the credentials exist in every commit where they appeared. Git’s immutable history means they’re accessible through:</p><ul><li>Commit history (<code>git log</code>)</li><li>GitHub’s cached views</li><li>Search engine indexing</li><li>Third-party Git mirrors</li></ul><p><strong>Tool Selection:</strong> <code>git-filter-repo</code></p><p>While several tools can rewrite Git history, <code>git-filter-repo</code> was chosen for its safety features and performance:</p><pre><code class="language-bash"># Installation
+pip install git-filter-repo
+
+# Remove sensitive files from entire history
+git-filter-repo --path .env --invert-paths --force
+git-filter-repo --path .env.example --invert-paths --force
+</code></pre><p><strong>Critical Gotcha:</strong> <code>git-filter-repo</code> removes all remotes as a safety measure to prevent accidental pushes. Remotes must be manually re-added before pushing.</p><h3 id="phase-3-multi-remote-coordination">Phase 3: Multi-Remote Coordination</h3><p>The repository had two remotes:</p><ul><li><code>origin</code> - GitHub (public)</li><li><code>production</code> - Bare repository on production server</li></ul><p>History rewriting had to be coordinated across both:</p><pre><code class="language-bash"># Re-add remotes after filter-repo
+git remote add origin <span class="obfuscated-email" data-user="tig" data-domain="moc.buhtig" data-type="text"></span>:user/repo.git
+git remote add production user@server:~/repo.git
+
+# Force push to both
+git push --force origin --all
+git push --force production --all
+</code></pre><h3 id="phase-4-production-data-recovery">Phase 4: Production Data Recovery</h3><p>The deployment triggered by the force push exposed a critical flaw in the deployment hook. Production data files that were removed from Git tracking were also deleted from the filesystem.</p><p><strong>Files Lost:</strong></p><ul><li><code>known_devices.json</code> - Device tracking database</li><li><code>device_database.json</code> - Device metadata</li><li><code>debug.log</code> - Application logs</li><li><code>blacklisted.json</code> - Security blocklist</li><li><code>requests.json</code> - Request history</li></ul><p><strong>Recovery Method:</strong></p><p>These files still existed in Git history before cleanup. They were restored using:</p><pre><code class="language-bash"># Find the last commit containing the files
+git log --all --oneline -- known_devices.json | head -1
+
+# Restore from that commit
+git checkout &lt;commit-hash&gt; -- known_devices.json device_database.json debug.log blacklisted.json requests.json
+
+# Fix permissions
+chown www-data:www-data *.json *.log
+chmod 644 *.json *.log
+</code></pre><h3 id="phase-5-deployment-hook-remediation">Phase 5: Deployment Hook Remediation</h3><p>The post-receive hook was rewritten to preserve untracked files during deployment:</p><pre><code class="language-bash">#!/bin/bash
+TARGET=&quot;/var/www/app&quot;
+GIT_DIR=&quot;$HOME/app.git&quot;
+BRANCH=&quot;main&quot;
+
+while read oldrev newrev ref
+do
+  if [[ $ref = refs/heads/$BRANCH ]]; then
+    echo &quot;Deploying to production...&quot;
+    
+    # Backup data files before checkout
+    cd $TARGET
+    cp -f known_devices.json known_devices.json.bak 2&gt;/dev/null || true
+    cp -f device_database.json device_database.json.bak 2&gt;/dev/null || true
+    cp -f debug.log debug.log.bak 2&gt;/dev/null || true
+    cp -f blacklisted.json blacklisted.json.bak 2&gt;/dev/null || true
+    cp -f requests.json requests.json.bak 2&gt;/dev/null || true
+    
+    # Deploy code
+    git --work-tree=$TARGET --git-dir=$GIT_DIR checkout -f $BRANCH
+    
+    # Restore data files if deleted by checkout
+    [ ! -f known_devices.json ] &amp;&amp; mv -f known_devices.json.bak known_devices.json 2&gt;/dev/null || true
+    [ ! -f device_database.json ] &amp;&amp; mv -f device_database.json.bak device_database.json 2&gt;/dev/null || true
+    [ ! -f debug.log ] &amp;&amp; mv -f debug.log.bak debug.log 2&gt;/dev/null || true
+    [ ! -f blacklisted.json ] &amp;&amp; mv -f blacklisted.json.bak blacklisted.json 2&gt;/dev/null || true
+    [ ! -f requests.json ] &amp;&amp; mv -f requests.json.bak requests.json 2&gt;/dev/null || true
+    
+    # Cleanup
+    rm -f *.bak
+    
+    # Fix permissions
+    chown www-data:www-data $TARGET/*.json $TARGET/*.log 2&gt;/dev/null || true
+    chmod 644 $TARGET/*.json $TARGET/*.log 2&gt;/dev/null || true
+    chown www-data:www-data $TARGET/.env 2&gt;/dev/null || true
+    chmod 600 $TARGET/.env 2&gt;/dev/null || true
+    
+    echo &quot;Deployment complete!&quot;
+  fi
+done
+</code></pre><hr><h2 id="technical-lessons">Technical Lessons</h2><h3 id="1-git-history-is-immutable-until-it-isnt">1. Git History Is Immutable (Until It Isn’t)</h3><p>Git’s design philosophy treats history as immutable, which is excellent for collaboration but catastrophic for secrets. Once committed, credentials are:</p><ul><li>Permanently in history until explicitly removed</li><li>Replicated to all clones</li><li>Potentially cached by GitHub</li><li>Possibly indexed by search engines</li></ul><p><strong>The Fix:</strong> History rewriting is possible but destructive. It changes all commit hashes, breaks existing clones, and requires force-pushing—a coordinated operation that can’t be done quietly.</p><h3 id="2-gitignore-is-not-retroactive">2. <code>.gitignore</code> Is Not Retroactive</h3><p>Adding <code>.env</code> to <code>.gitignore</code> after it’s been committed does nothing. The file remains in history. <code>.gitignore</code> only affects future operations.</p><p><strong>Correct Workflow:</strong></p><pre><code class="language-bash"># Add to .gitignore FIRST
+echo &quot;.env&quot; &gt;&gt; .gitignore
+git add .gitignore
+git commit -m &quot;ignore environment files&quot;
+
+# THEN create .env
+touch .env
+# File is now ignored
+</code></pre><h3 id="3-template-files-need-sanitization">3. Template Files Need Sanitization</h3><p><code>.env.example</code> files serve as templates for other developers. They should contain:</p><pre><code class="language-bash"># WRONG - Real credentials
+DB_PASSWORD=MyActualPassword123
+API_KEY=sk_live_abc123xyz789
+
+# RIGHT - Placeholders
+DB_PASSWORD=your_secure_password_here
+API_KEY=your_api_key_here
+</code></pre><h3 id="4-deployment-hooks-must-account-for-state">4. Deployment Hooks Must Account for State</h3><p>Git tracks code, not state. Production systems often have files that shouldn’t be in Git:</p><ul><li>User-uploaded content</li><li>Generated caches</li><li>Runtime logs</li><li>Session data</li><li>Application-managed databases</li></ul><p>Deployment scripts that blindly overwrite the working directory will destroy this state.</p><p><strong>Better Approaches:</strong></p><p><strong>Option A:</strong> Separate state directory</p><pre><code class="language-bash">/var/www/app/        # Git-managed code
+/var/www/app-data/   # Application state
+</code></pre><p><strong>Option B:</strong> Explicit exclusions</p><pre><code class="language-bash"># Only checkout tracked files, preserve untracked
+git checkout -f $BRANCH
+</code></pre><p><strong>Option C:</strong> Backup and restore (shown above)</p><h3 id="5-multi-remote-force-push-coordination">5. Multi-Remote Force Push Coordination</h3><p>When pushing to multiple remotes, history must be synchronized:</p><pre><code class="language-bash"># This creates divergent histories (BAD)
+git push --force origin main
+# Make more changes
+git push --force production main
+
+# This keeps them synchronized (GOOD)
+git push --force origin main
+git push --force production main
+# Both remotes now have identical history
+</code></pre><h3 id="6-file-ownership-in-deployment-hooks">6. File Ownership in Deployment Hooks</h3><p>The deployment hook runs as the SSH user, but web files need different ownership:</p><pre><code class="language-bash"># Wrong - Files owned by deployment user
+git checkout -f $BRANCH
+
+# Right - Explicitly set ownership
+git checkout -f $BRANCH
+chown -R www-data:www-data $TARGET
+</code></pre><hr><h2 id="prevention-strategy">Prevention Strategy</h2><h3 id="layer-1-pre-commit-prevention">Layer 1: Pre-Commit Prevention</h3><p><strong>Git Hooks:</strong></p><p>Create <code>.git/hooks/pre-commit</code>:</p><pre><code class="language-bash">#!/bin/bash
+if git diff --cached --name-only | grep -E &#39;^\.env$|^\.env\..*&#39;; then
+    echo &quot;Error: Attempting to commit .env file&quot;
+    echo &quot;Add to .gitignore instead&quot;
+    exit 1
+fi
+</code></pre><p>Make executable:</p><pre><code class="language-bash">chmod +x .git/hooks/pre-commit
+</code></pre><p><strong>Automated Tools:</strong></p><ul><li><strong>git-secrets</strong> - Scans for patterns matching credentials</li><li><strong>detect-secrets</strong> - Pre-commit hook for secret detection</li><li><strong>gitleaks</strong> - SAST tool for hardcoded secrets</li></ul><h3 id="layer-2-repository-configuration">Layer 2: Repository Configuration</h3><p><strong>Comprehensive <code>.gitignore</code>:</strong></p><pre><code class="language-bash"># Environment files
+.env
+.env.*
+!.env.example
+
+# Application state
+*.log
+*.json
+!package.json
+!composer.json
+
+# Server configuration
+.htaccess
+php.ini
+
+# Uploads
+uploads/
+storage/
+
+# Caches
+cache/
+tmp/
+</code></pre><p><strong>Branch Protection:</strong></p><p>Enable on GitHub:</p><ul><li>Require pull request reviews</li><li>Require status checks</li><li>Restrict force pushes</li><li>Require signed commits</li></ul><h3 id="layer-3-secrets-management">Layer 3: Secrets Management</h3><p><strong>Never Store Secrets in Git:</strong></p><p>Use dedicated secret management:</p><ul><li><strong>HashiCorp Vault</strong> - Enterprise secret storage</li><li><strong>AWS Secrets Manager</strong> - Cloud-native secrets</li><li><strong>Azure Key Vault</strong> - Microsoft ecosystem</li><li><strong>Google Secret Manager</strong> - GCP integration</li></ul><p><strong>Environment Variable Injection:</strong></p><pre><code class="language-bash"># Deploy-time injection
+export DB_PASSWORD=$(vault read -field=password secret/db)
+php artisan serve
+</code></pre><h3 id="layer-4-monitoring-and-detection">Layer 4: Monitoring and Detection</h3><p><strong>GitHub Scanning:</strong></p><ul><li>Enable GitHub secret scanning (free for public repos)</li><li>Configure custom patterns for proprietary secrets</li><li>Set up notifications for detected secrets</li></ul><p><strong>Audit Logging:</strong></p><p>Monitor for:</p><ul><li>Unexpected credential usage from new IPs</li><li>API key usage spikes</li><li>Failed authentication attempts</li><li>Credential rotation events</li></ul><h3 id="layer-5-incident-response-preparation">Layer 5: Incident Response Preparation</h3><p><strong>Runbook for Credential Exposure:</strong></p><ol><li><p><strong>Immediate (0-5 minutes)</strong></p><ul><li>Rotate all exposed credentials</li><li>Verify rotation completed successfully</li><li>Monitor for unauthorized access</li></ul></li><li><p><strong>Short-term (5-30 minutes)</strong></p><ul><li>Assess scope of exposure</li><li>Check logs for credential usage</li><li>Notify stakeholders if needed</li></ul></li><li><p><strong>Medium-term (30 minutes - 2 hours)</strong></p><ul><li>Remove from Git history</li><li>Force push to all remotes</li><li>Verify removal from GitHub cache</li></ul></li><li><p><strong>Long-term (2+ hours)</strong></p><ul><li>Review security logs for 30 days</li><li>Conduct post-mortem</li><li>Implement additional controls</li></ul></li></ol><hr><h2 id="architecture-improvements">Architecture Improvements</h2><h3 id="separate-deployment-from-state">Separate Deployment from State</h3><p><strong>Before:</strong></p><pre><code>/var/www/app/
+├── .env                  # Mixed: config
+├── index.php             # Deployed: code
+├── dashboard.php         # Deployed: code
+├── known_devices.json    # State: data
+└── requests.json         # State: data
+</code></pre><p><strong>After:</strong></p><pre><code>/var/www/app/             # Git-deployed code only
+├── index.php
+├── dashboard.php
+└── includes/
+
+/var/www/app-config/      # Server-managed config
+├── .env
+└── config.php
+
+/var/www/app-data/        # Application state
+├── known_devices.json
+├── requests.json
+└── logs/
+</code></pre><p>Update application to load from separate paths:</p><pre><code class="language-php">// Load config from separate directory
+$dotenv = Dotenv\Dotenv::createImmutable(&#39;/var/www/app-config&#39;);
+$dotenv-&gt;load();
+
+// Store data in separate directory
+$dataPath = &#39;/var/www/app-data/&#39;;
+</code></pre><h3 id="production-only-files-strategy">Production-Only Files Strategy</h3><p>For files that must exist in production but not GitHub:</p><p><strong>Option A: Template + Manual Creation</strong></p><pre><code class="language-bash"># In repo: .env.example
+DB_HOST=localhost
+DB_NAME=database_name
+DB_PASSWORD=your_password_here
+
+# On server: Copy and fill
+cp .env.example .env
+nano .env  # Fill with real values
+</code></pre><p><strong>Option B: Injection Script</strong></p><pre><code class="language-bash">#!/bin/bash
+# deploy-inject-config.sh
+
+# Create .env from secure storage
+cat &gt; /var/www/app/.env &lt;&lt; EOF
+DB_HOST=$(vault read -field=host secret/db)
+DB_NAME=$(vault read -field=name secret/db)
+DB_PASSWORD=$(vault read -field=password secret/db)
+EOF
+
+chmod 600 /var/www/app/.env
+chown www-data:www-data /var/www/app/.env
+</code></pre><p>Add to post-receive hook:</p><pre><code class="language-bash"># After checkout
+git --work-tree=$TARGET --git-dir=$GIT_DIR checkout -f $BRANCH
+
+# Inject config
+bash $HOME/deploy-inject-config.sh
+</code></pre><hr><h2 id="the-cost-of-this-incident">The Cost of This Incident</h2><h3 id="time-investment">Time Investment</h3><ul><li><strong>Detection to rotation:</strong> 10 minutes</li><li><strong>Total remediation:</strong> 60 minutes</li><li><strong>Documentation:</strong> 120 minutes</li><li><strong>Process improvements:</strong> 180 minutes</li></ul><p><strong>Total:</strong> ~6 hours of engineering time</p><h3 id="service-impact">Service Impact</h3><ul><li><strong>Downtime:</strong> 60 minutes</li><li><strong>Degraded service:</strong> 30 minutes</li><li><strong>User impact:</strong> All production users</li></ul><h3 id="security-impact">Security Impact</h3><ul><li><strong>Credential exposure window:</strong> 15-30 minutes</li><li><strong>Rotation completed:</strong> Yes</li><li><strong>Unauthorized access detected:</strong> No</li><li><strong>Long-term monitoring:</strong> Ongoing</li></ul><hr><h2 id="key-takeaways">Key Takeaways</h2><ol><li><p><strong>Secrets in Git are permanently exposed</strong> - History rewriting is complex, risky, and doesn’t guarantee the secret wasn’t already harvested.</p></li><li><p><strong>Credential rotation is non-negotiable</strong> - Even if you remove credentials from Git in 30 seconds, treat them as compromised.</p></li><li><p><strong>Deployment automation needs safety rails</strong> - Hooks that blindly overwrite filesystems will eventually destroy production state.</p></li><li><p><strong>Prevention is cheaper than remediation</strong> - A pre-commit hook takes 5 minutes to implement; this incident consumed 6 hours.</p></li><li><p><strong>Template files need the same security rigor</strong> - <code>.env.example</code> with real credentials is just as dangerous as <code>.env</code>.</p></li><li><p><strong>Multi-layer security is essential</strong> - No single control prevents this incident. Pre-commit hooks, <code>.gitignore</code>, secret scanning, and proper architecture all contribute.</p></li><li><p><strong>State and code should be separated</strong> - Mixing deployed code with runtime state creates deployment complexity and data loss risks.</p></li><li><p><strong>Force push operations require planning</strong> - When rewriting history across multiple remotes, coordination prevents divergent histories and lost work.</p></li></ol><hr><h2 id="conclusion">Conclusion</h2><p>This incident demonstrates how a simple configuration oversight can cascade into a complex, multi-system remediation effort. The mistake wasn’t just committing the <code>.env</code> file—it was the absence of defensive layers that would have prevented or quickly caught the error.</p><p>Modern development requires defense in depth:</p><ul><li><strong>Prevent:</strong> Pre-commit hooks, gitignore templates, secret scanning</li><li><strong>Detect:</strong> GitHub secret scanning, audit logs, monitoring</li><li><strong>Respond:</strong> Runbooks, rotation procedures, communication plans</li><li><strong>Recover:</strong> Backup strategies, deployment safety, state management</li></ul><p>The best incident is the one that never happens. Invest in prevention now, because credential rotation at 2 AM is significantly more expensive than a 5-minute pre-commit hook setup.</p><hr><p><strong>Resources:</strong></p><ul><li><a href="https://github.com/newren/git-filter-repo">git-filter-repo documentation</a></li><li><a href="https://docs.github.com/en/code-security/secret-scanning">GitHub Secret Scanning</a></li><li><a href="https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html">OWASP Secrets Management Cheat Sheet</a></li><li><a href="https://12factor.net/config">The Twelve-Factor App: Config</a></li></ul><hr><p><em>This post-mortem is shared for educational purposes. The technical details and lessons learned are real.</em></p></div><footer class="content__footer"><div class="entry-wrapper"><p class="content__updated">This article was updated on July 30, 2026</p><div class="content__actions"><ul class="content__tag"><li><a href="https://ehmi.se/blog/tags/deployment/">deployment</a></li><li><a href="https://ehmi.se/blog/tags/devops/">Devops</a></li><li><a href="https://ehmi.se/blog/tags/tutorial/">tutorial</a></li></ul><div class="content__share"><button class="btn--icon content__share-button js-content__share-button"><svg width="20" height="20" aria-hidden="true"><use xlink:href="https://ehmi.se/blog/assets/svg/svg-map.svg#share"></use></svg> <span>Share It</span></button><div class="content__share-popup js-content__share-popup"><a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fehmi.se%2Fblog%2Faccidentally-pushing-credentials-to-github-a-technical-post-mortem%2F" class="js-share facebook" rel="nofollow noopener noreferrer"><svg class="icon" aria-hidden="true" focusable="false"><use xlink:href="https://ehmi.se/blog/assets/svg/svg-map.svg#facebook"/></svg> <span>Facebook</span> </a><a href="https://twitter.com/intent/tweet?url=https%3A%2F%2Fehmi.se%2Fblog%2Faccidentally-pushing-credentials-to-github-a-technical-post-mortem%2F&amp;via=Ehmi0k&amp;text=Accidentally%20Pushing%20Credentials%20to%20GitHub%3A%20A%20Technical%20Post-Mortem" class="js-share twitter" rel="nofollow noopener noreferrer"><svg class="icon" aria-hidden="true" focusable="false"><use xlink:href="https://ehmi.se/blog/assets/svg/svg-map.svg#twitter"/></svg> <span>Twitter</span> </a><a href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fehmi.se%2Fblog%2Faccidentally-pushing-credentials-to-github-a-technical-post-mortem%2F" class="js-share linkedin" rel="nofollow noopener noreferrer"><svg class="icon" aria-hidden="true" focusable="false"><use xlink:href="https://ehmi.se/blog/assets/svg/svg-map.svg#linkedin"/></svg> <span>LinkedIn</span></a></div></div></div><div class="content__bio bio"><div><h3 class="h4 bio__name"><a href="https://ehmi.se/blog/authors/ehmad/" rel="author">Ehmad</a></h3></div></div></div><nav class="content__nav"><div class="wrapper"><div class="content__nav-inner"><div class="content__nav-prev"><a href="https://ehmi.se/blog/webassembly-or-what-is-webassembly/" class="content__nav-link" rel="prev"><div><span>Previous</span> WebAssembly</div></a></div><div class="content__nav-next"><a href="https://ehmi.se/blog/implementing-cve-monitoring-for-docker-containers-without-auto-patching/" class="content__nav-link" rel="next"><div><span>Next</span> Implementing CVE Monitoring for Docker Containers Without Auto-Patching</div><figure class="content__nav-image"><img src="https://ehmi.se/blog/media/posts/54/responsive/1712320809-open-source-container-security-tools-landscape-xs.webp" class="lazyload" loading="lazy" alt="Docker Containers" height="900" width="900"></figure></a></div></div></div></nav></footer></article><div class="content__related related"><div class="wrapper"><h2 class="h4 related__title">You should also read:</h2><article class="feed__item feed__item--centered"><div class="feed__content"><header><div class="feed__meta"><a href="https://ehmi.se/blog/authors/ehmad/" class="feed__author">Ehmad</a> <time datetime="2026-07-30T15:07" class="feed__date">July 30, 2026</time></div><h3 class="feed__title"><a href="https://ehmi.se/blog/constructing-a-minimal-12mb-operating-system-for-web-hosting-a-comprehensive-technical-guide/">Constructing a Minimal 12MB Operating System for Web Hosting: A Comprehensive Technical Guide</a></h3></header><p>This article presents a methodical approach to engineering a lightweight operating system, constrained to approximately 12 megabytes, specifically designed for Internet connectivity and web server deployment. This endeavour demonstrates the viability of creating functional networked systems without the bloat associated with contemporary operating systems, whilst&hellip;</p><a href="https://ehmi.se/blog/constructing-a-minimal-12mb-operating-system-for-web-hosting-a-comprehensive-technical-guide/" class="readmore feed__readmore">Continue reading...</a></div></article></div></div></main><footer class="footer footer--glued"><div class="wrapper"><nav class="footer__nav"><ul><li><a href="https://ehmi.se/blog/terms-and-conditions-for-ehmi/" class="al" target="_self">Terms and Conditions</a></li><li><a href="https://ehmi.se/blog/privacy-policy-for-ehmi/" class="al" target="_self">Privacy Policy</a></li><li><a href="https://ehmi.se/blog/contact-us/" class="al" target="_self">Contact</a></li><li><a href="https://github.com/mrxehmad/" class="al" target="_blank">Github</a></li></ul></nav><div class="footer__copyright"><p>Copyright 2025</p></div><div class="footer__social"><a href="https://ehmi.se/instagram" aria-label="Instagram"><svg><use xlink:href="https://ehmi.se/blog/assets/svg/svg-map.svg#instagram"/></svg> </a><a href="https://ehmi.se/linkedin" aria-label="LinkedIn"><svg><use xlink:href="https://ehmi.se/blog/assets/svg/svg-map.svg#linkedin"/></svg></a></div><button onclick="backToTopFunction()" id="backToTop" class="footer__bttop" aria-label="Back to top" title="Back to top"><svg width="20" height="20"><use xlink:href="https://ehmi.se/blog/assets/svg/svg-map.svg#toparrow"/></svg></button></div></footer><script defer="defer" src="https://ehmi.se/blog/assets/js/scripts.min.js?v=700105c316933a8202041b6415abb233"></script><script>window.publiiThemeMenuConfig={mobileMenuMode:'sidebar',animationSpeed:300,submenuWidth: 'auto',doubleClickTime:500,mobileMenuExpandableSubmenus:true,relatedContainerForOverlayMenuSelector:'.top'};</script><script>var images = document.querySelectorAll('img[loading]');
+        for (var i = 0; i < images.length; i++) {
+            if (images[i].complete) {
+                images[i].classList.add('is-loaded');
+            } else {
+                images[i].addEventListener('load', function () {
+                    this.classList.add('is-loaded');
+                }, false);
+            }
+        }</script><script>'use strict'; document.addEventListener('DOMContentLoaded', function() { var obfElements = document.querySelectorAll('.obfuscated-email'); obfElements.forEach(function(elem) { var dataType = elem.getAttribute('data-type'); var encodedEmail = elem.getAttribute('data-email'); var user = elem.getAttribute('data-user'); var domain = elem.getAttribute('data-domain'); var decodedEmail = ''; if (user && domain) { decodedEmail = user.split('').reverse().join('') + '@' + domain.split('').reverse().join(''); } else if (encodedEmail) { const parts = encodedEmail.split('@'); if (parts.length === 2) { decodedEmail = parts[0].split('').reverse().join('') + '@' + parts[1].split('').reverse().join(''); } else { decodedEmail = encodedEmail; } } if (dataType === 'mailto') { var originalText = elem.textContent.trim(); var a = document.createElement('a'); a.href = 'mailto:' + decodedEmail; if (elem.classList.length > 0) { a.className = elem.className; } if (originalText === '') { a.textContent = decodedEmail; } else { a.textContent = originalText; } elem.parentNode.replaceChild(a, elem); } else if (dataType === 'text') { var textNode = document.createTextNode(decodedEmail); elem.parentNode.replaceChild(textNode, elem); } }); });</script><script>(function() {
+			var originalTitle = document.title;
+			var timeout;
+			document.addEventListener("visibilitychange", function() {
+				if (document.hidden) {
+					timeout = setTimeout(function() {
+							document.title = "👀 We miss you! Come back!";
+						}, 200);
+				} else {
+					clearTimeout(timeout);
+					setTimeout(function() {
+							document.title = "🎉 Welcome back!";
+							setTimeout(function() {
+								document.title = originalTitle;
+							}, 2000);
+						}, 100);
+				}
+			});
+		})();</script><script src="https://ehmi.se/blog/media/plugins/pagePrefetching/quicklink.umd.js"></script><script>window.addEventListener('load', () => {
+					quicklink.listen({
+						prerender: true,
+						el: document.querySelector('body'),
+						delay: 0,
+						limit: 5,
+						throttle: 5,
+						timeout: 2000
+					});
+				});</script><div class="pcb" data-behaviour="badge" data-behaviour-link="#cookie-settings" data-revision="1" data-config-ttl="90" data-debug-mode="false"><div role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="pcb-title" aria-describedby="pcb-txt" class="pcb__banner pcb__banner--right"><div class="pcb__inner"><div id="pcb-title" role="heading" aria-level="2" class="pcb__title">This website uses cookies</div><div id="pcb-txt" class="pcb__txt">Select which cookies to opt-in to via the checkboxes below; our website uses cookies to examine site traffic and user activity while on our site, for marketing, and to provide social media functionality. <a href="https://ehmi.se/blog/privacy-policy-for-ehmi/">More details...</a></div><div class="pcb__buttons"><button type="button" class="pcb__btn pcb__btn--link pcb__btn--configure" aria-haspopup="dialog">Manage preferences</button> <button type="button" class="pcb__btn pcb__btn--reject">Reject</button> <button type="button" class="pcb__btn pcb__btn--solid pcb__btn--accept">Accept all</button></div></div></div><div class="pcb__popup" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="pcb-popup-title"><div class="pcb__popup__wrapper"><div class="pcb__inner pcb__popup__inner"><div class="pcb__popup__heading"><div id="pcb-popup-title" role="heading" aria-level="2" class="pcb__title">Cookie settings</div><button class="pcb__popup__close" aria-label="Close"></button></div><div class="pcb__popup__content"><div class="pcb__txt pcb__popup__txt">We use cookies to enhance your browsing experience, serve personalized ads or content, and analyze our traffic. By clicking "Accept All", you consent to our use of cookies. <a href="https://ehmi.se/blog/privacy-policy-for-ehmi/">More details...</a></div><ul class="pcb__groups"><li class="pcb__group"><details><summary class="pcb__group__title no-desc">Required</summary></details><div class="pcb__popup__switch is-checked"><input type="checkbox" data-group-name="" id="pcb-group-0" checked="checked"> <label for="pcb-group-0">Required</label></div></li></ul></div><div class="pcb__buttons pcb__popup__buttons"><button type="button" class="pcb__btn pcb__btn--solid pcb__btn--accept">Accept all</button> <button type="button" class="pcb__btn pcb__btn--reject">Reject all</button> <button type="button" class="pcb__btn pcb__btn--save">Save settings</button></div></div></div></div><div class="pcb__overlay" aria-hidden="true"></div><button class="pcb__badge" aria-label="Cookie Policy" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" width="40" height="40" viewBox="0 0 23 23" fill="currentColor"><path d="M21.41 12.71c-.08-.01-.15 0-.22 0h-.03c-.03 0-.05 0-.08.01-.07 0-.13.01-.19.04-.52.21-1.44.19-2.02-.22-.44-.31-.65-.83-.62-1.53a.758.758 0 0 0-.27-.61.73.73 0 0 0-.65-.14c-1.98.51-3.49.23-4.26-.78-.82-1.08-.73-2.89.24-4.49.14-.23.14-.52 0-.75a.756.756 0 0 0-.67-.36c-.64.03-1.11-.1-1.31-.35-.19-.26-.13-.71-.01-1.29.04-.18.06-.38.03-.59-.05-.4-.4-.7-.81-.66C5.1 1.54 1 6.04 1 11.48 1 17.28 5.75 22 11.6 22c5.02 0 9.39-3.54 10.39-8.42.08-.4-.18-.78-.58-.87Zm-9.81 7.82c-5.03 0-9.12-4.06-9.12-9.06 0-4.34 3.05-8 7.25-8.86-.08.7.05 1.33.42 1.81.24.32.66.67 1.38.84-.76 1.86-.65 3.78.36 5.11.61.81 2.03 2 4.95 1.51.18.96.71 1.54 1.18 1.87.62.43 1.38.62 2.1.62.05 0 .09 0 .13-.01-1.23 3.64-4.7 6.18-8.64 6.18ZM13 17c0 .55-.45 1-1 1s-1-.45-1-1 .45-1 1-1 1 .45 1 1Zm5.29-12.3a.99.99 0 0 1-.29-.71c0-.55.45-.99 1-.99a1 1 0 0 1 .71.3c.19.19.29.44.29.71 0 .55-.45.99-1 .99a1 1 0 0 1-.71-.3ZM9 13.5c0 .83-.67 1.5-1.5 1.5S6 14.33 6 13.5 6.67 12 7.5 12s1.5.67 1.5 1.5Zm3.25.81a.744.744 0 0 1-.06-1.05c.28-.32.75-.34 1.05-.06.31.28.33.75.05 1.06-.15.16-.35.25-.56.25-.18 0-.36-.06-.5-.19ZM8.68 7.26c.41.37.44 1 .07 1.41-.2.22-.47.33-.75.33a.96.96 0 0 1-.67-.26c-.41-.37-.44-1-.07-1.41.37-.42 1-.45 1.41-.08Zm11.48 1.88c.18-.19.52-.19.7 0 .05.04.09.1.11.16.03.06.04.12.04.19 0 .13-.05.26-.15.35-.09.1-.22.15-.35.15s-.26-.05-.35-.15a.355.355 0 0 1-.11-.16.433.433 0 0 1-.04-.19c0-.13.05-.26.15-.35Zm-4.93-1.86a.75.75 0 1 1 1.059-1.06.75.75 0 0 1-1.059 1.06Z"/></svg></button></div><script>window.dataLayer = window.dataLayer || [];
+                function gtag() { dataLayer.push(arguments); }
+
+                window.publiiCBGCM = {
+                    defaultState: {"ad_storage":true,"ad_personalization":true,"ad_user_data":true,"analytics_storage":true,"personalization_storage":true,"functionality_storage":true,"security_storage":false},
+                    groups: []
+                };
+            
+            (function(win) {
+    if (!document.querySelector('.pcb')) {
+        return;
+    }
+
+    var cbConfig = {
+        behaviour: document.querySelector('.pcb').getAttribute('data-behaviour'),
+        behaviourLink: document.querySelector('.pcb').getAttribute('data-behaviour-link'),
+        revision: document.querySelector('.pcb').getAttribute('data-revision'),
+        configTTL: parseInt(document.querySelector('.pcb').getAttribute('data-config-ttl'), 10),
+        debugMode: document.querySelector('.pcb').getAttribute('data-debug-mode') === 'true',
+        initialState: null,
+        initialLsState: null,
+        previouslyAccepted: []
+    };
+
+    var cbUI = {
+        wrapper: document.querySelector('.pcb'),
+        banner: {
+            element: null,
+            btnAccept: null,
+            btnReject: null,
+            btnConfigure: null
+        },
+        popup: {
+            element: null,
+            btnClose: null,
+            btnSave: null,
+            btnAccept: null,
+            btnReject: null,
+            checkboxes: null,
+        },
+        overlay: null,
+        badge: null,
+        blockedScripts: document.querySelectorAll('script[type^="gdpr-blocker/"]'),
+        triggerLinks: cbConfig.behaviourLink ? document.querySelectorAll('a[href*="' + cbConfig.behaviourLink + '"]') : null
+    };
+
+    function initUI () {
+        // setup banner elements
+        cbUI.banner.element = cbUI.wrapper.querySelector('.pcb__banner');
+        cbUI.banner.btnAccept = cbUI.banner.element.querySelector('.pcb__btn--accept');
+        cbUI.banner.btnReject = cbUI.banner.element.querySelector('.pcb__btn--reject');
+        cbUI.banner.btnConfigure = cbUI.banner.element.querySelector('.pcb__btn--configure');
+
+        // setup popup elements
+        if (cbUI.wrapper.querySelector('.pcb__popup')) {
+            cbUI.popup.element = cbUI.wrapper.querySelector('.pcb__popup');
+            cbUI.popup.btnClose = cbUI.wrapper.querySelector('.pcb__popup__close');
+            cbUI.popup.btnSave = cbUI.popup.element.querySelector('.pcb__btn--save');
+            cbUI.popup.btnAccept = cbUI.popup.element.querySelector('.pcb__btn--accept');
+            cbUI.popup.btnReject = cbUI.popup.element.querySelector('.pcb__btn--reject');
+            cbUI.popup.checkboxes = cbUI.popup.element.querySelector('input[type="checkbox"]');
+            // setup overlay
+            cbUI.overlay = cbUI.wrapper.querySelector('.pcb__overlay');
+        }
+
+        cbUI.badge = cbUI.wrapper.querySelector('.pcb__badge');
+
+        if (cbConfig.behaviour.indexOf('link') > -1) {
+            for (var i = 0; i < cbUI.triggerLinks.length; i++) {
+                cbUI.triggerLinks[i].addEventListener('click', function(e) {
+                    e.preventDefault();
+                    showBannerOrPopup();
+                });
+            }
+        }
+    }
+
+    function initState () {
+        var lsKeyName = getConfigName();
+        var currentConfig = localStorage.getItem(lsKeyName);
+        var configIsFresh = checkIfConfigIsFresh();
+
+        if (!configIsFresh || currentConfig === null) {
+            if (cbConfig.debugMode) {
+                console.log('🍪 Config not found, or configuration expired');
+            }
+
+            if (window.publiiCBGCM) {
+                gtag('consent', 'default', {
+                    'ad_storage': window.publiiCBGCM.defaultState.ad_storage ? 'granted' : 'denied',
+                    'ad_personalization': window.publiiCBGCM.defaultState.ad_personalization ? 'granted' : 'denied',
+                    'ad_user_data': window.publiiCBGCM.defaultState.ad_user_data ? 'granted' : 'denied',
+                    'analytics_storage': window.publiiCBGCM.defaultState.analytics_storage ? 'granted' : 'denied',
+                    'personalization_storage': window.publiiCBGCM.defaultState.personalization_storage ? 'granted' : 'denied',
+                    'functionality_storage': window.publiiCBGCM.defaultState.functionality_storage ? 'granted' : 'denied',
+                    'security_storage': window.publiiCBGCM.defaultState.security_storage ? 'granted' : 'denied'
+                });  
+                
+                if (cbConfig.debugMode) {
+                    console.log('🍪 GCMv2 DEFAULT STATE: ' + JSON.stringify({
+                        'ad_storage': window.publiiCBGCM.defaultState.ad_storage ? 'granted' : 'denied',
+                        'ad_personalization': window.publiiCBGCM.defaultState.ad_personalization ? 'granted' : 'denied',
+                        'ad_user_data': window.publiiCBGCM.defaultState.ad_user_data ? 'granted' : 'denied',
+                        'analytics_storage': window.publiiCBGCM.defaultState.analytics_storage ? 'granted' : 'denied',
+                        'personalization_storage': window.publiiCBGCM.defaultState.personalization_storage ? 'granted' : 'denied',
+                        'functionality_storage': window.publiiCBGCM.defaultState.functionality_storage ? 'granted' : 'denied',
+                        'security_storage': window.publiiCBGCM.defaultState.security_storage ? 'granted' : 'denied'
+                    }));
+                }
+            }
+
+            showBanner();
+        } else if (typeof currentConfig === 'string') {
+            if (cbConfig.debugMode) {
+                console.log('🍪 Config founded');
+            }
+
+            cbConfig.initialLsState = currentConfig.split(',');
+
+            if (window.publiiCBGCM) {
+                gtag('consent', 'default', {
+                    'ad_storage': getDefaultConsentState(currentConfig, 'ad_storage'),
+                    'ad_personalization': getDefaultConsentState(currentConfig, 'ad_personalization'),
+                    'ad_user_data': getDefaultConsentState(currentConfig, 'ad_user_data'),
+                    'analytics_storage': getDefaultConsentState(currentConfig, 'analytics_storage'),
+                    'personalization_storage': getDefaultConsentState(currentConfig, 'personalization_storage'),
+                    'functionality_storage': getDefaultConsentState(currentConfig, 'functionality_storage'),
+                    'security_storage': getDefaultConsentState(currentConfig, 'security_storage')
+                });
+                
+                if (cbConfig.debugMode) {
+                    console.log('🍪 GCMv2 DEFAULT STATE: ' + JSON.stringify({
+                        'ad_storage': getDefaultConsentState(currentConfig, 'ad_storage'),
+                        'ad_personalization': getDefaultConsentState(currentConfig, 'ad_personalization'),
+                        'ad_user_data': getDefaultConsentState(currentConfig, 'ad_user_data'),
+                        'analytics_storage': getDefaultConsentState(currentConfig, 'analytics_storage'),
+                        'personalization_storage': getDefaultConsentState(currentConfig, 'personalization_storage'),
+                        'functionality_storage': getDefaultConsentState(currentConfig, 'functionality_storage'),
+                        'security_storage': getDefaultConsentState(currentConfig, 'security_storage')
+                    }));
+                }
+            }
+
+            showBadge();
+
+            if (cbUI.popup.element) {
+                var allowedGroups = currentConfig.split(',');
+                var checkedCheckboxes = cbUI.popup.element.querySelectorAll('input[type="checkbox"]:checked');
+
+                for (var j = 0; j < checkedCheckboxes.length; j++) {
+                    var name = checkedCheckboxes[j].getAttribute('data-group-name');
+
+                    if (name && name !== '-' && allowedGroups.indexOf(name) === -1) {
+                        checkedCheckboxes[j].checked = false;
+                    }
+                }
+
+                for (var i = 0; i < allowedGroups.length; i++) {
+                    var checkbox = cbUI.popup.element.querySelector('input[type="checkbox"][data-group-name="' + allowedGroups[i] + '"]');
+
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
+
+                    allowCookieGroup(allowedGroups[i]);
+                }
+            }
+        }
+
+        setTimeout(function () {
+            cbConfig.initialState = getInitialStateOfConsents();
+        }, 0);
+    }
+
+    function checkIfConfigIsFresh () {
+        var lastConfigSave = localStorage.getItem('publii-gdpr-cookies-config-save-date');
+
+        if (lastConfigSave === null) {
+            return false;
+        }
+
+        lastConfigSave = parseInt(lastConfigSave, 10);
+
+        if (lastConfigSave === 0) {
+            return true;
+        }
+
+        if (+new Date() - lastConfigSave < cbConfig.configTTL * 24 * 60 * 60 * 1000) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function getDefaultConsentState (currentConfig, consentGroup) {
+        let configGroups = currentConfig.split(',');
+
+        for (let i = 0; i < configGroups.length; i++) {
+            let groupName = configGroups[i];
+            let group = window.publiiCBGCM.groups.find(group => group.cookieGroup === groupName);
+
+            if (group && group[consentGroup]) {
+                return 'granted';
+            }
+        }  
+        
+        if (window.publiiCBGCM.defaultState[consentGroup]) {
+            return 'granted'; 
+        }
+        
+        return 'denied';
+    }
+
+    function initBannerEvents () {
+        cbUI.banner.btnAccept.addEventListener('click', function (e) {
+            e.preventDefault();
+            acceptAllCookies('banner');
+            showBadge();
+        }, false);
+
+        if (cbUI.banner.btnReject) {
+            cbUI.banner.btnReject.addEventListener('click', function (e) {
+                e.preventDefault();
+                rejectAllCookies();
+                showBadge();
+            }, false);
+        }
+
+        if (cbUI.banner.btnConfigure) {
+            cbUI.banner.btnConfigure.addEventListener('click', function (e) {
+                e.preventDefault();
+                hideBanner();
+                showAdvancedPopup();
+                showBadge();
+            }, false);
+        }
+    }
+
+    function initPopupEvents () {
+        if (!cbUI.popup.element) {
+            return;
+        }
+
+        cbUI.overlay.addEventListener('click', function (e) {
+            hideAdvancedPopup();
+        }, false);
+
+        cbUI.popup.element.addEventListener('click', function (e) {
+            e.stopPropagation();
+        }, false);
+
+        cbUI.popup.btnAccept.addEventListener('click', function (e) {
+            e.preventDefault();
+            acceptAllCookies('popup');
+        }, false);
+
+        cbUI.popup.btnReject.addEventListener('click', function (e) {
+            e.preventDefault();
+            rejectAllCookies();
+        }, false);
+
+        cbUI.popup.btnSave.addEventListener('click', function (e) {
+            e.preventDefault();
+            saveConfiguration();
+        }, false);
+
+        cbUI.popup.btnClose.addEventListener('click', function (e) {
+            e.preventDefault();
+            hideAdvancedPopup();
+        }, false);
+    }
+
+    function initBadgeEvents () {
+        if (!cbUI.badge) {
+            return;
+        }
+
+        cbUI.badge.addEventListener('click', function (e) {
+            showBannerOrPopup();
+        }, false);
+    }
+
+    initUI();
+    initState();
+    initBannerEvents();
+    initPopupEvents();
+    initBadgeEvents();
+
+    /**
+     * API
+     */
+    function addScript (src, inline) {
+        var newScript = document.createElement('script');
+
+        if (src) {
+            newScript.setAttribute('src', src);
+        }
+
+        if (inline) {
+            newScript.text = inline;
+        }
+
+        document.body.appendChild(newScript);
+    }
+
+    function allowCookieGroup (allowedGroup) {
+        var scripts = document.querySelectorAll('script[type="gdpr-blocker/' + allowedGroup + '"]');
+        cbConfig.previouslyAccepted.push(allowedGroup);
+    
+        for (var j = 0; j < scripts.length; j++) {
+            addScript(scripts[j].src, scripts[j].text);
+        }
+
+        var groupEvent = new Event('publii-cookie-banner-unblock-' + allowedGroup);
+        document.body.dispatchEvent(groupEvent);
+        unlockEmbeds(allowedGroup);
+
+        if (cbConfig.debugMode) {
+            console.log('🍪 Allowed group: ' + allowedGroup);
+        }
+
+        if (window.publiiCBGCM && (!cbConfig.initialLsState || cbConfig.initialLsState.indexOf(allowedGroup) === -1)) {
+            let consentResult = {};
+            let group = window.publiiCBGCM.groups.find(group => group.cookieGroup === allowedGroup);
+
+            if (group) {
+                let foundSomeConsents = false;
+
+                Object.keys(group).forEach(key => {
+                    if (key !== 'cookieGroup' && group[key] === true) {
+                        consentResult[key] = 'granted';
+                        foundSomeConsents = true;
+                    }
+                });
+
+                if (foundSomeConsents) {
+                    gtag('consent', 'update', consentResult);   
+
+                    if (cbConfig.debugMode) {
+                        console.log('🍪 GCMv2 UPDATE: ' + JSON.stringify(consentResult));
+                    }
+                }
+            }
+        }
+    }
+
+    function showBannerOrPopup () {
+        if (cbUI.popup.element) {
+            showAdvancedPopup();
+        } else {
+            showBanner();
+        }
+    }
+
+    function showAdvancedPopup () {
+        cbUI.popup.element.classList.add('is-visible');
+        cbUI.overlay.classList.add('is-visible');
+        cbUI.popup.element.setAttribute('aria-hidden', 'false');
+        cbUI.overlay.setAttribute('aria-hidden', 'false');
+    }
+
+    function hideAdvancedPopup () {
+        cbUI.popup.element.classList.remove('is-visible');
+        cbUI.overlay.classList.remove('is-visible');
+        cbUI.popup.element.setAttribute('aria-hidden', 'true');
+        cbUI.overlay.setAttribute('aria-hidden', 'true');
+    }
+
+    function showBanner () {
+        cbUI.banner.element.classList.add('is-visible');
+        cbUI.banner.element.setAttribute('aria-hidden', 'false');
+    }
+
+    function hideBanner () {
+        cbUI.banner.element.classList.remove('is-visible');
+        cbUI.banner.element.setAttribute('aria-hidden', 'true');
+    }
+
+    function showBadge () {
+        if (!cbUI.badge) {
+            return;
+        }
+
+        cbUI.badge.classList.add('is-visible');
+        cbUI.badge.setAttribute('aria-hidden', 'false');
+    }
+
+    function getConfigName () {
+        var lsKeyName = 'publii-gdpr-allowed-cookies';
+
+        if (cbConfig.revision) {
+            lsKeyName = lsKeyName + '-v' + parseInt(cbConfig.revision, 10);
+        }
+
+        return lsKeyName;
+    }
+
+    function storeConfiguration (allowedGroups) {
+        var lsKeyName = getConfigName();
+        var dataToStore = allowedGroups.join(',');
+        localStorage.setItem(lsKeyName, dataToStore);
+
+        if (cbConfig.configTTL === 0) {
+            localStorage.setItem('publii-gdpr-cookies-config-save-date', 0);
+
+            if (cbConfig.debugMode) {
+                console.log('🍪 Store never expiring configuration');
+            }
+        } else {
+            localStorage.setItem('publii-gdpr-cookies-config-save-date', +new Date());
+        }
+    }
+
+    function getInitialStateOfConsents () {
+        if (!cbUI.popup.element) {
+            return [];
+        }
+
+        var checkedGroups = cbUI.popup.element.querySelectorAll('input[type="checkbox"]:checked');
+        var groups = [];
+
+        for (var i = 0; i < checkedGroups.length; i++) {
+            var allowedGroup = checkedGroups[i].getAttribute('data-group-name');
+
+            if (allowedGroup !== '') {
+                groups.push(allowedGroup);
+            }
+        }
+
+        if (cbConfig.debugMode) {
+            console.log('🍪 Initial state: ' + groups.join(', '));
+        }
+
+        return groups;
+    }
+
+    function getCurrentStateOfConsents () {
+        if (!cbUI.popup.element) {
+            return [];
+        }
+
+        var checkedGroups = cbUI.popup.element.querySelectorAll('input[type="checkbox"]:checked');
+        var groups = [];
+
+        for (var i = 0; i < checkedGroups.length; i++) {
+            var allowedGroup = checkedGroups[i].getAttribute('data-group-name');
+
+            if (allowedGroup !== '') {
+                groups.push(allowedGroup);
+            }
+        }
+
+        if (cbConfig.debugMode) {
+            console.log('🍪 State to save: ' + groups.join(', '));
+        }
+
+        return groups;
+    }
+
+    function getAllGroups () {
+        if (!cbUI.popup.element) {
+            return [];
+        }
+
+        var checkedGroups = cbUI.popup.element.querySelectorAll('input[type="checkbox"]');
+        var groups = [];
+
+        for (var i = 0; i < checkedGroups.length; i++) {
+            var allowedGroup = checkedGroups[i].getAttribute('data-group-name');
+
+            if (allowedGroup !== '') {
+                groups.push(allowedGroup);
+            }
+        }
+
+        return groups;
+    }
+
+    function acceptAllCookies (source) {
+        var groupsToAccept = getAllGroups();
+        storeConfiguration(groupsToAccept);
+
+        for (var i = 0; i < groupsToAccept.length; i++) {
+            var group = groupsToAccept[i];
+
+            if (cbConfig.initialState.indexOf(group) > -1 || cbConfig.previouslyAccepted.indexOf(group) > -1) {
+                if (cbConfig.debugMode) {
+                    console.log('🍪 Skip previously activated group: ' + group);
+                }
+
+                continue;
+            }
+
+            allowCookieGroup(group);
+        }
+
+        if (cbUI.popup.element) {
+            var checkboxesToCheck = cbUI.popup.element.querySelectorAll('input[type="checkbox"]');
+
+            for (var j = 0; j < checkboxesToCheck.length; j++) {
+                checkboxesToCheck[j].checked = true;
+            }
+        }
+
+        if (cbConfig.debugMode) {
+            console.log('🍪 Accept all cookies: ', groupsToAccept.join(', '));
+        }
+
+        if (source === 'popup') {
+            hideAdvancedPopup();
+        } else if (source === 'banner') {
+            hideBanner();
+        }
+    }
+
+    function rejectAllCookies () {
+        if (cbConfig.debugMode) {
+            console.log('🍪 Reject all cookies');
+        }
+
+        storeConfiguration([]);
+        setTimeout(function () {
+            window.location.reload();
+        }, 100);
+    }
+
+    function saveConfiguration () {
+        var groupsToAccept = getCurrentStateOfConsents();
+        storeConfiguration(groupsToAccept);
+
+        if (cbConfig.debugMode) {
+            console.log('🍪 Save new config: ', groupsToAccept.join(', '));
+        }
+
+        if (reloadIsNeeded(groupsToAccept)) {
+            setTimeout(function () {
+                window.location.reload();
+            }, 100);
+            return;
+        }
+
+        for (var i = 0; i < groupsToAccept.length; i++) {
+            var group = groupsToAccept[i];
+
+            if (cbConfig.initialState.indexOf(group) > -1 || cbConfig.previouslyAccepted.indexOf(group) > -1) {
+                if (cbConfig.debugMode) {
+                    console.log('🍪 Skip previously activated group: ' + group);
+                }
+
+                continue;
+            }
+
+            allowCookieGroup(group);
+        }
+
+        hideAdvancedPopup();
+    }
+
+    function reloadIsNeeded (groupsToAccept) {
+        // check if user rejected consent for initial groups
+        var initialGroups = cbConfig.initialState;
+        var previouslyAcceptedGroups = cbConfig.previouslyAccepted;
+        var groupsToCheck = initialGroups.concat(previouslyAcceptedGroups);
+
+        for (var i = 0; i < groupsToCheck.length; i++) {
+            var groupToCheck = groupsToCheck[i];
+
+            if (groupToCheck !== '' && groupsToAccept.indexOf(groupToCheck) === -1) {
+                if (cbConfig.debugMode) {
+                    console.log('🍪 Reload is needed due lack of: ', groupToCheck);
+                }
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    function unlockEmbeds (cookieGroup) {
+        var iframesToUnlock = document.querySelectorAll('.pec-wrapper[data-consent-group-id="' + cookieGroup + '"]');
+
+        for (var i = 0; i < iframesToUnlock.length; i++) {
+            var iframeWrapper = iframesToUnlock[i];
+            iframeWrapper.querySelector('.pec-overlay').classList.remove('is-active');
+            iframeWrapper.querySelector('.pec-overlay').setAttribute('aria-hidden', 'true');
+            var iframe = iframeWrapper.querySelector('iframe');
+            iframe.setAttribute('src', iframe.getAttribute('data-consent-src'));
+        }
+    }
+
+    win.publiiEmbedConsentGiven = function (cookieGroup) {
+        // it will unlock embeds
+        allowCookieGroup(cookieGroup);
+
+        var checkbox = cbUI.popup.element.querySelector('input[type="checkbox"][data-group-name="' + cookieGroup + '"]');
+
+        if (checkbox) {
+            checkbox.checked = true;
+        }
+
+        var groupsToAccept = getCurrentStateOfConsents();
+        storeConfiguration(groupsToAccept);
+
+        if (cbConfig.debugMode) {
+            console.log('🍪 Save new config: ', groupsToAccept.join(', '));
+        }
+    }
+})(window);</script></body></html>

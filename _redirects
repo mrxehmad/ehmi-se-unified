@@ -1,0 +1,8 @@
+# Redirect old blog subdomain to new location
+https://blog.ehmi.se/*  https://ehmi.se/blog/:splat  301!
+
+# Redirect old tools subdomain
+https://tools.ehmi.se/*  https://ehmi.se/tools/:splat  301!
+
+# SPA fallback for tools (must be last)
+/tools/*  /tools/index.html  200
